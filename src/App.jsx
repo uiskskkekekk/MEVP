@@ -24,7 +24,8 @@ function Navbar({
 }) {
   return (
     <nav className="navbar">
-      <div className="navbar-brand">MEVP</div>
+      <img src="/MEVP_logo.png" alt="MEVP Logo" className="navbar-logo" />
+      {/* <div className="navbar-brand">MEVP</div> */}
       <NavDropdown title="Tools">
         <DropdownLink to="/" header="Phylotree" />
         <DropdownLink to="#" header="Sequence Alignment" />
