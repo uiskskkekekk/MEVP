@@ -17,3 +17,25 @@
 .navbar a{
   color: gray
 }
+
+.file-upload{
+  margin-left: 25px;
+}
+
+.file-upload label{
+  margin: 0px 5px;
+}
+
+.custom-upload-label {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.custom-upload-label:hover {
+  color: rgb(43, 43, 43);
+}
+
+.file-name{
+  color: #0056b3;
+}

@@ -24,13 +24,26 @@ path.rp-branch:hover {
   display: flex;
   flex-direction: column;
   align-items: left; /* Center align items horizontally */
+  margin-top: 15px;
 }
 
-.file-input-container {
+.size-control-and-export {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px
+}
+
+.width-control {
+  margin-bottom: 6px;
+}
+
+.export-container {
+  display: flex;
   margin: 10px; /* Adjust spacing as needed */
 }
 
-.file-input-container button {
+.export-container button {
   border-radius: 3px;
   padding: 1px 10px;
   border: 1px solid #767676;
@@ -39,7 +52,7 @@ path.rp-branch:hover {
   margin-left: 15px;
 }
 
-.file-input-container button:hover{
+.export-container button:hover{
   border: 1px solid #505050;
   background-color: #E5E5E5;
 }

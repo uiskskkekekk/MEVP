@@ -117,7 +117,7 @@ class PhylotreeApplication extends Component {
       sort: null,
       internal: false,
       clickedBranch: null,
-      newick: "",
+      newick: props.initialNewick || "",
       width: 500, // 默認寬度
       height: 500, // 默認高度
       collapsedNodes: new Set(), // 折疊節點集合
@@ -135,45 +135,38 @@ class PhylotreeApplication extends Component {
     };
 
     // 綁定方法
-    this.handleFileChange = this.handleFileChange.bind(this);
     this.handleContextMenuEvent = this.handleContextMenuEvent.bind(this);
     this.closeContextMenu = this.closeContextMenu.bind(this);
-    // this.toggleNode = this.toggleNode.bind(this);
     this.handleCollapseSubtree = this.handleCollapseSubtree.bind(this);
     this.exportModifiedNewick = this.exportModifiedNewick.bind(this);
     this.handleNodeRename = this.handleNodeRename.bind(this);
   }
 
-  // 檔案上傳處理
-  handleFileChange(event) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newick = e.target.result;
-
-        this.setState({
-          newick, // set new newick string
-          tree: null, // 重置樹實例
-          treeInstance: null, // 重置樹實例
-          alignTips: "left", // 恢復默認對齊
-          sort: null, // 清除排序
-          internal: false, // 隱藏內部標簽
-          clickedBranch: null, // 清除點擊分支
-          collapsedNodes: new Set(), // 清除所有折疊節點
-          renamedNodes: new Map(),
-          merged: {},
-          currentThreshold: null, // 清除當前閾值
-          contextMenu: {
-            // 重置右鍵菜單
-            visible: false,
-            position: { x: 0, y: 0 },
-            nodeId: null,
-            nodeData: null,
-          },
-        });
-      };
-      reader.readAsText(file);
+  componentDidUpdate(prevProps) {
+    // 當 props 中的 initialNewick 發生變化且不為空時，更新樹
+    if (
+      this.props.initialNewick !== prevProps.initialNewick &&
+      this.props.initialNewick
+    ) {
+      this.setState({
+        newick: this.props.initialNewick,
+        tree: null, // 重置樹實例
+        treeInstance: null,
+        alignTips: "left",
+        sort: null,
+        internal: false,
+        clickedBranch: null,
+        collapsedNodes: new Set(),
+        renamedNodes: new Map(),
+        merged: {},
+        currentThreshold: null,
+        contextMenu: {
+          visible: false,
+          position: { x: 0, y: 0 },
+          nodeId: null,
+          nodeData: null,
+        },
+      });
     }
   }
 
@@ -719,16 +712,6 @@ class PhylotreeApplication extends Component {
 
         <div style={{ display: "flex", justifyContent: "space-around" }}>
           <div className="phylotree-application">
-            <div className="file-input-container">
-              <input
-                type="file"
-                accept=".nwk"
-                onChange={this.handleFileChange}
-                style={{ marginTop: "20px" }}
-              />
-              <button onClick={this.exportModifiedNewick}>Export Newick</button>
-              <button onClick={this.exportTreeAsImage}>Export Image</button>
-            </div>
             <div className="button-group-container">
               <ButtonGroup>
                 <VerticalExpansionButton
@@ -762,32 +745,42 @@ class PhylotreeApplication extends Component {
                 }}
               />
               {this.state.internal ? "Hide" : "Show"} internal labels
-              <div>
-                <label>Width: {width}px</label>
-                <input
-                  type="range"
-                  min="300"
-                  max="2000"
-                  value={width}
-                  step="10"
-                  onChange={(e) =>
-                    this.setState({ width: parseInt(e.target.value, 10) })
-                  }
-                  style={{ marginTop: 10 }}
-                />
-              </div>
-              <div>
-                <label>Height: {height}px</label>
-                <input
-                  type="range"
-                  min="300"
-                  max="2000"
-                  value={height}
-                  step="10"
-                  onChange={(e) =>
-                    this.setState({ height: parseInt(e.target.value, 10) })
-                  }
-                />
+              <div className="size-control-and-export">
+                <div className="controls-container">
+                  <div className="width-control">
+                    <label>Width: {width}px</label>
+                    <input
+                      type="range"
+                      min="300"
+                      max="2000"
+                      value={width}
+                      step="10"
+                      onChange={(e) =>
+                        this.setState({ width: parseInt(e.target.value, 10) })
+                      }
+                      style={{ marginTop: 10 }}
+                    />
+                  </div>
+                  <div className="height-control">
+                    <label>Height: {height}px</label>
+                    <input
+                      type="range"
+                      min="300"
+                      max="2000"
+                      value={height}
+                      step="10"
+                      onChange={(e) =>
+                        this.setState({ height: parseInt(e.target.value, 10) })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="export-container">
+                  <button onClick={this.exportModifiedNewick}>
+                    Export Newick
+                  </button>
+                  <button onClick={this.exportTreeAsImage}>Export Image</button>
+                </div>
               </div>
             </div>{" "}
             {/*button group container*/}
