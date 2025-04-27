@@ -1,4 +1,4 @@
-# React Phylotree
+# MEVP
 
 A molecular evolution visualization platform
 
