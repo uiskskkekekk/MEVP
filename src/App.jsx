@@ -36,7 +36,14 @@ function App() {
         <Navbar />
         <div className="container-fluid">
           <Routes>
-            <Route path="/" element={<PhylotreeApplication />} />
+            <Route
+              path="/"
+              element={
+                <div style={{ maxWidth: 1140, margin: "0 auto" }}>
+                  <PhylotreeApplication />
+                </div>
+              }
+            />
             <Route path="/haplotype" element={<HaplotypeNetworkApp />} />
           </Routes>
         </div>
