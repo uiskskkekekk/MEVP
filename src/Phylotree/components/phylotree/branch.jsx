@@ -104,12 +104,4 @@ function Branch(props) {
   );
 }
 
-// Branch.defaultProps = {
-//   branchStyle: {
-//     strokeWidth: 2,
-//     stroke: "grey",
-//   },
-//   labelStyle: {},
-// };
-
 export default Branch;

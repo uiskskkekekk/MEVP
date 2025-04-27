@@ -174,14 +174,14 @@ function placenodes(
 
   // 執行位置計算
   if (perform_internal_layout) {
-    // tree.max_y = 0;
-    // tree.node_order = [];
-    // internal_node_layout(tree.nodes);
-    // const root = tree.getNodeByName("root");
-    // root.data.abstract_y =
-    //   root.children
-    //     .map((child) => child.data.abstract_y)
-    //     .reduce((a, b) => a + b, 0) / root.children.length;
+    tree.max_y = 0;
+    tree.node_order = [];
+    internal_node_layout(tree.nodes);
+    const root = tree.getNodeByName("root");
+    root.data.abstract_y =
+      root.children
+        .map((child) => child.data.abstract_y)
+        .reduce((a, b) => a + b, 0) / root.children.length;
   } else {
     node_layout(tree.nodes);
     tree.max_y = current_leaf_height;
@@ -585,7 +585,7 @@ function Phylotree(props) {
             //   props.internalNodeLabels ||
             //   (props.showLabels && tree.isLeafNode(link.target))
             // }
-            showLabel={tree.isLeafNode(link.target)}
+            showLabel={props.internalNodeLabels || tree.isLeafNode(link.target)}
             maxLabelWidth={maxLabelWidth}
             width={actualWidth}
             alignTips={props.alignTips}

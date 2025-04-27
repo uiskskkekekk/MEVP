@@ -30,6 +30,7 @@
   display: block;
   width: 100%;
   cursor: pointer;
+  color: #808080;
 }
 
 .custom-upload-label:hover {
