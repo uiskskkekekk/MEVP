@@ -1,168 +1,235 @@
-import React, { useEffect, useState } from "react";
-import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMapComponent";
-import GeneSelector from "./components/GeneSelector";
-import GeneTable from "./components/GeneTable";
-import HaplotypeList from "./components/HaplotypeList";
+import React, { useState, useEffect, useRef } from "react";
 import TaiwanMapComponent from "./components/TaiwanMapComponent";
+import HaplotypeList from "./components/HaplotypeList";
+import GeneTable from "./components/GeneTable";
+import GeneSelector from "./components/GeneSelector";
+import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMapComponent";
 
-// 顏色產生器
-const generateColors = (num) => {
-  return Array.from(
-    { length: num },
-    (_, i) => `hsl(${(i * 137) % 360}, 70%, 50%)`
-  );
-};
+const generateColors = (num) =>
+  Array.from({ length: num }, (_, i) => `hsl(${(i * 137) % 360}, 70%, 50%)`);
 
 const HaplotypeNetworkApp = () => {
+  const [activeSection, setActiveSection] = useState("taiwanMap");
   const [genes, setGenes] = useState([]);
   const [geneColors, setGeneColors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [mapKey, setMapKey] = useState(0);
   const [selectedGene, setSelectedGene] = useState(null);
-
-  const [activeGene, setActiveGene] = useState(null);
   const [activeSimilarityGroup, setActiveSimilarityGroup] = useState([]);
-  const [geneSequences, setGeneSequences] = useState({});
+  const [cityUpdateFlags, setCityUpdateFlags] = useState({});
+  const [cityGeneData, setCityGeneData] = useState({});
+  const workerRef = useRef(null);
 
-  const genesPerPage = 500;
+  const genesPerPage = 100;
   const totalPages = Math.ceil(genes.length / genesPerPage);
-  const startIdx = (currentPage - 1) * genesPerPage;
-  const endIdx = startIdx + genesPerPage;
-  const paginatedGenes = genes.slice(startIdx, endIdx);
+  const paginatedGenes = genes.slice(
+    (currentPage - 1) * genesPerPage,
+    currentPage * genesPerPage
+  );
 
-  const updateMapData = () => {
-    setMapKey((prevKey) => prevKey + 1);
+  const updateMapData = (updatedCities) => {
+    const partialData = {};
+    updatedCities.forEach((city) => {
+      const cityData = {};
+      genes.forEach((gene) => {
+        const count = gene.counts[city] || 0;
+        if (count > 0) cityData[gene.name] = count;
+      });
+      partialData[city] = cityData;
+    });
+
+    setCityUpdateFlags((prev) => {
+      const next = { ...prev };
+      updatedCities.forEach((city) => {
+        next[city] = (next[city] || 0) + 1;
+      });
+      return next;
+    });
+
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: "update",
+        partialData,
+      });
+    }
   };
 
-  const showAllGenes = () => {
-    setActiveGene(null);
+  const showAllGenes = () => setSelectedGene(null);
+
+  const loadGeneCountsFromBackend = async (geneNames) => {
+    try {
+      const res = await fetch("/api/getGeneCounts");
+      const data = await res.json();
+      const countMap = new Map(data.genes.map((g) => [g.name, g.counts]));
+
+      const updatedGenes = geneNames.map((name) => ({
+        name,
+        counts: countMap.get(name) || {},
+      }));
+
+      setGenes(updatedGenes);
+
+      const fullCityData = {};
+      updatedGenes.forEach((gene) => {
+        Object.entries(gene.counts).forEach(([city, count]) => {
+          if (!fullCityData[city]) fullCityData[city] = {};
+          fullCityData[city][gene.name] = count;
+        });
+      });
+
+      if (workerRef.current) {
+        workerRef.current.postMessage({ type: "init", data: fullCityData });
+      }
+    } catch (err) {
+      console.error("❌ 無法從後端載入 gene counts:", err);
+      setGenes(geneNames.map((name) => ({ name, counts: {} })));
+    }
   };
 
-  const showSpecificGene = () => {
-    if (selectedGene) setActiveGene(selectedGene);
+  
+
+  const saveGeneCountsToBackend = async (updatedGenes) => {
+    try {
+      const res = await fetch("/api/saveGeneCounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ genes: updatedGenes }),
+      });
+      const data = await res.json();
+      console.log("✔ Gene counts 儲存成功:", data.message);
+    } catch (err) {
+      console.error("❌ Gene counts 儲存失敗:", err);
+    }
+  };
+
+  const handleEditGeneCount = (geneName, location, newValue) => {
+    const updatedGenes = genes.map((gene) => {
+      if (gene.name === geneName) {
+        return {
+          ...gene,
+          counts: {
+            ...gene.counts,
+            [location]: newValue ? parseInt(newValue, 10) : 0,
+          },
+        };
+      }
+      return gene;
+    });
+    setGenes(updatedGenes);
+    saveGeneCountsToBackend(updatedGenes);
   };
 
   useEffect(() => {
     if (window.Worker) {
-      const worker = new Worker(
-        new URL("./workers/fileWorker.js", import.meta.url),
-        {
-          type: "module",
+      const fileWorker = new Worker(new URL("./workers/fileWorker.js", import.meta.url), {
+        type: "module",
+      });
+
+      fileWorker.onmessage = async (event) => {
+        const { sequences } = event.data;
+
+        try {
+          await fetch("/api/uploadSequences", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sequences }),
+          });
+
+          const res = await fetch("/api/sequences");
+          const data = await res.json();
+
+          const generatedColors = generateColors(data.geneNames.length);
+          const colors = {};
+          data.geneNames.forEach((name, index) => {
+            colors[name] = generatedColors[index % generatedColors.length];
+          });
+          setGeneColors(colors);
+
+          await loadGeneCountsFromBackend(data.geneNames);
+        } catch (error) {
+          console.error("❌ 上傳或讀取基因資料失敗:", error);
         }
-      );
-
-      worker.onmessage = (event) => {
-        console.log("Worker 回傳：", event.data);
-        const { geneNames, sequences } = event.data;
-
-        const uniqueColors = generateColors(geneNames.length);
-        const newColors = {};
-        geneNames.forEach((name, index) => {
-          newColors[name] = uniqueColors[index % uniqueColors.length];
-        });
-
-        setGeneColors(newColors);
-        setGenes(geneNames.map((name) => ({ name, counts: {} })));
-        setGeneSequences(sequences);
       };
 
-      window.handleFileChange = (event) => {
-        const file = event.target.files[0];
+      window.handleFileChange = (e) => {
+        const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => {
-          worker.postMessage(e.target.result);
-        };
+        reader.onload = (e) => fileWorker.postMessage(e.target.result);
         reader.readAsText(file);
       };
     }
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px",
-        padding: "20px",
-      }}
-    >
-      <input
-        type="file"
-        accept=".fa,.fasta,.txt"
-        onChange={(e) => window.handleFileChange(e)}
-      />
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "20px" }}>
+      <input type="file" accept=".fa,.fasta,.txt" onChange={(e) => window.handleFileChange(e)} />
 
-      {/* 主體區域：地圖 + 選擇器 + 篩選後地圖 */}
-      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-        {/* 左：地圖 */}
+      <div style={{ marginBottom: "20px" }}>
+        <button onClick={() => setActiveSection("taiwanMap")}>ALL sequences</button>
+        <button onClick={() => setActiveSection("geneComponents")}>sequences Components</button>
+      </div>
+
+      <div
+        style={{
+          display: activeSection === "taiwanMap" ? "flex" : "none",
+          gap: "20px",
+          alignItems: "flex-start",
+        }}
+      >
         <TaiwanMapComponent
-          key={mapKey}
           genes={genes}
+          cityGeneData={cityGeneData}
           geneColors={geneColors}
-          activeGene={activeGene}
-          activeSimilarityGroup={activeSimilarityGroup}
+          cityUpdateFlags={cityUpdateFlags}
         />
+      </div>
 
-        {/* 中：基因選擇器 */}
+      <div
+        style={{
+          display: activeSection === "geneComponents" ? "flex" : "none",
+          gap: "20px",
+          alignItems: "flex-start",
+        }}
+      >
         <GeneSelector
           genes={genes}
           selectedGene={selectedGene}
           setSelectedGene={setSelectedGene}
           showAllGenes={showAllGenes}
-          showSpecificGene={showSpecificGene}
           geneColors={geneColors}
-          geneSequences={geneSequences}
           setActiveSimilarityGroup={setActiveSimilarityGroup}
         />
-
-        {/* 右：篩選後地圖 */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <FilteredTaiwanMapComponent
-            genes={genes}
-            geneColors={geneColors}
-            activeGene={selectedGene}
-            activeSimilarityGroup={activeSimilarityGroup}
-          />
-        </div>
+        <FilteredTaiwanMapComponent
+          genes={genes}
+          cityUpdateFlags={cityUpdateFlags}
+          cityGeneData={cityGeneData}
+          geneColors={geneColors}
+          selectedGene={selectedGene}
+          activeSimilarityGroup={activeSimilarityGroup}
+        />
       </div>
 
-      {/* 分頁控制 */}
       <div style={{ marginTop: "10px" }}>
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-        >
+        <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
           上一頁
         </button>
-        <span>
-          {" "}
-          第 {currentPage} 頁 / 共 {totalPages} 頁{" "}
-        </span>
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-          }
-        >
+        <span> 第 {currentPage} 頁 / 共 {totalPages} 頁 </span>
+        <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
           下一頁
         </button>
       </div>
 
-      {/* 資料表與樣本列表 */}
       <div style={{ display: "flex", gap: "20px" }}>
-        <HaplotypeList
-          paginatedGenes={paginatedGenes}
-          geneColors={geneColors}
-        />
+        <HaplotypeList paginatedGenes={paginatedGenes} geneColors={geneColors} />
         <GeneTable
           genes={genes}
-          setGenes={setGenes}
-          paginatedGenes={paginatedGenes}
           currentPage={currentPage}
           itemsPerPage={genesPerPage}
           updateMapData={updateMapData}
           geneColors={geneColors}
+          setCityGeneData={setCityGeneData}
+          onEditGeneCount={handleEditGeneCount}
+          setCurrentPage={setCurrentPage}
         />
       </div>
     </div>
