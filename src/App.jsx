@@ -2,6 +2,7 @@ import { useState } from "react";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 
+import FloatingChatManager from "./Chat/FloatingChatManager";
 import HaplotypeNetworkApp from "./HaplotypeNetwork/HaplotypeNetworkApp";
 import PhylotreeApplication from "./Phylotree/components/PhylotreeApplication";
 
@@ -116,7 +117,7 @@ function App() {
           phylotreeFileName={phylotreeFileName}
           haplotypeFileName={haplotypeFileName}
         />
-        <div className="container-fluid">
+        <div className="container-fluid" id="workspace-container">
           <Routes>
             <Route
               path="/"
@@ -133,6 +134,9 @@ function App() {
               }
             />
           </Routes>
+
+          {/* 浮動聊天管理器，不受路由影響，始終可用 */}
+          <FloatingChatManager />
         </div>
       </div>
     </BrowserRouter>
