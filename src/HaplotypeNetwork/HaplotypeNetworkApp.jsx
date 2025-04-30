@@ -8,7 +8,7 @@ import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMapComponent"
 const generateColors = (num) =>
   Array.from({ length: num }, (_, i) => `hsl(${(i * 137) % 360}, 70%, 50%)`);
 
-const HaplotypeNetworkApp = () => {
+const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
   const [activeSection, setActiveSection] = useState("taiwanMap");
   const [genes, setGenes] = useState([]);
   const [geneColors, setGeneColors] = useState({});
@@ -85,8 +85,6 @@ const HaplotypeNetworkApp = () => {
     }
   };
 
-  
-
   const saveGeneCountsToBackend = async (updatedGenes) => {
     try {
       const res = await fetch("/api/saveGeneCounts", {
@@ -118,11 +116,13 @@ const HaplotypeNetworkApp = () => {
     saveGeneCountsToBackend(updatedGenes);
   };
 
+  // 建立 fileWorker 並綁定處理訊息
   useEffect(() => {
     if (window.Worker) {
       const fileWorker = new Worker(new URL("./workers/fileWorker.js", import.meta.url), {
         type: "module",
       });
+      workerRef.current = fileWorker;
 
       fileWorker.onmessage = async (event) => {
         const { sequences } = event.data;
@@ -149,20 +149,20 @@ const HaplotypeNetworkApp = () => {
           console.error("❌ 上傳或讀取基因資料失敗:", error);
         }
       };
-
-      window.handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => fileWorker.postMessage(e.target.result);
-        reader.readAsText(file);
-      };
     }
   }, []);
 
+  // ✅ 自動處理從 App 傳來的檔案內容
+  useEffect(() => {
+    if (initialFileContent && workerRef.current) {
+      workerRef.current.postMessage(initialFileContent);
+    }
+  }, [initialFileContent]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "20px" }}>
-      <input type="file" accept=".fa,.fasta,.txt" onChange={(e) => window.handleFileChange(e)} />
+      {/* 可保留作為備用手動上傳 */}
+      {/* <input type="file" accept=".fa,.fasta,.txt" onChange={(e) => window.handleFileChange(e)} /> */}
 
       <div style={{ marginBottom: "20px" }}>
         <button onClick={() => setActiveSection("taiwanMap")}>ALL sequences</button>
@@ -237,3 +237,4 @@ const HaplotypeNetworkApp = () => {
 };
 
 export default HaplotypeNetworkApp;
+
