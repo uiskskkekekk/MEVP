@@ -152,12 +152,16 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     }
   }, []);
 
-  // ✅ 自動處理從 App 傳來的檔案內容
+  // 自動處理從 App 傳來的檔案內容
   useEffect(() => {
     if (initialFileContent && workerRef.current) {
-      workerRef.current.postMessage(initialFileContent);
+      workerRef.current.postMessage({
+        type: "parseFile",
+        fileContent: initialFileContent,
+      });
     }
   }, [initialFileContent]);
+  
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "20px" }}>
