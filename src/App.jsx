@@ -5,6 +5,7 @@ import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import FloatingChatManager from "./Chat/FloatingChatManager";
 import HaplotypeNetworkApp from "./HaplotypeNetwork/HaplotypeNetworkApp";
 import PhylotreeApplication from "./Phylotree/components/PhylotreeApplication";
+import SequencealignmentAPP from "./Sequence alignment/SequencealignmentAPP"; 
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
@@ -26,10 +27,9 @@ function Navbar({
   return (
     <nav className="navbar">
       <img src="/MEVP_logo.png" alt="MEVP Logo" className="navbar-logo" />
-      {/* <div className="navbar-brand">MEVP</div> */}
       <NavDropdown title="Tools">
         <DropdownLink to="/" header="Phylotree" />
-        <DropdownLink to="#" header="Sequence Alignment" />
+        <DropdownLink to="/sequence-alignment" header="Sequence Alignment" /> 
         <DropdownLink to="/haplotype" header="Haplotype Network" />
       </NavDropdown>
 
@@ -133,9 +133,13 @@ function App() {
                 <HaplotypeNetworkApp initialFileContent={haplotypeContent} />
               }
             />
+            <Route
+              path="/sequence-alignment"
+              element={<SequencealignmentAPP />} 
+            />
           </Routes>
 
-          {/* 浮動聊天管理器，不受路由影響，始終可用 */}
+          {/* 浮動聊天管理器 */}
           <FloatingChatManager />
         </div>
       </div>
