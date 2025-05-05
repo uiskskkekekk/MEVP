@@ -46,7 +46,6 @@ const GeneSelector = ({
       showAllGenes();
     } else {
       setSelectedGene(geneName);
-      
     }
   };
 
@@ -69,7 +68,6 @@ const GeneSelector = ({
     setResults([]);
     setResultsPage(0);
     setActiveSimilarityGroup([]);
-    
 
     try {
       const res = await fetch("http://localhost:3000/sequences");
@@ -95,10 +93,8 @@ const GeneSelector = ({
       setResults(filtered);
       setResultsPage(0);
       setActiveSimilarityGroup(filtered.map((g) => g.name));
-       // 傳 gene name 陣列給 App
       onSimilarityResults && onSimilarityResults(filtered.map((g) => g.name));
       setProgress(null);
-
     } catch (err) {
       console.error("比對錯誤:", err);
       setProgress(null);
@@ -114,7 +110,7 @@ const GeneSelector = ({
             showAllGenes();
           }}
         >
-          取消
+          Select genes
         </button>
 
         {currentGenes.map((gene) => (
@@ -144,84 +140,89 @@ const GeneSelector = ({
         </div>
       </div>
 
-      {selectedGene && (
-        <div style={{ flex: 1 }}>
-          <strong>比對相似基因：</strong>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "5px" }}>
-            <button onClick={() => filterBySimilarity(100, 100)}>100% 相似</button>
-            <button onClick={() => filterBySimilarity(90, 99.99)}>90%~99%</button>
-            <button onClick={() => filterBySimilarity(80, 89.99)}>80%~89%</button>
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
-            <span>自訂相似度範圍：</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={customMin}
-              onChange={(e) => setCustomMin(Number(e.target.value))}
-              style={{ width: "60px" }}
-            />
-            <span>~</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={customMax}
-              onChange={(e) => setCustomMax(Number(e.target.value))}
-              style={{ width: "60px" }}
-            />
-            <button
-              onClick={() => {
-                if (customMin <= customMax) {
-                  filterBySimilarity(customMin, customMax);
-                } else {
-                  alert("請確認相似度範圍有效（最小 <= 最大）");
-                }
-              }}
-            >
-              查詢
-            </button>
-          </div>
-
-          {progress && (
-            <p style={{ marginTop: "10px", color: "blue" }}>
-              正在比對中... ({progress.completed} / {progress.total})
-            </p>
-          )}
-
-          {results.length > 0 && (
-            <div style={{ marginTop: "10px", borderTop: "1px solid #ccc", paddingTop: "10px" }}>
-              <strong>比對結果：</strong>
-              <List height={400} width={400} itemCount={currentResults.length} itemSize={35}>
-                {({ index, style }) => {
-                  const { name, similarity } = currentResults[index];
-                  return (
-                    <div key={name} style={style}>
-                      <span style={{ color: geneColors[name] || "#000" }}>{name}</span> — {similarity.toFixed(1)}%
-                    </div>
-                  );
-                }}
-              </List>
-              <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "10px" }}>
-                <button onClick={() => handleResultsPageChange("prev")} disabled={resultsPage === 0}>
-                  上一頁
-                </button>
-                <span>第 {resultsPage + 1} 頁 / 共 {resultsTotalPages} 頁</span>
-                <button
-                  onClick={() => handleResultsPageChange("next")}
-                  disabled={resultsPage >= resultsTotalPages - 1}
-                >
-                  下一頁
-                </button>
-              </div>
-            </div>
-          )}
+      <div style={{ flex: 1 }}>
+        <strong>比對相似基因：</strong>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "5px" }}>
+          <button onClick={() => filterBySimilarity(100, 100)}>100% 相似</button>
+          <button onClick={() => filterBySimilarity(90, 99.99)}>90%~99%</button>
+          <button onClick={() => filterBySimilarity(80, 89.99)}>80%~89%</button>
         </div>
-      )}
+
+        <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
+          <span>自訂相似度範圍：</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={customMin}
+            onChange={(e) => setCustomMin(Number(e.target.value))}
+            style={{ width: "60px" }}
+          />
+          <span>~</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={customMax}
+            onChange={(e) => setCustomMax(Number(e.target.value))}
+            style={{ width: "60px" }}
+          />
+          <button
+            onClick={() => {
+              if (customMin <= customMax) {
+                filterBySimilarity(customMin, customMax);
+              } else {
+                alert("請確認相似度範圍有效（最小 <= 最大）");
+              }
+            }}
+          >
+            查詢
+          </button>
+        </div>
+
+        {progress && (
+          <p style={{ marginTop: "10px", color: "blue" }}>
+            正在比對中... ({progress.completed} / {progress.total})
+          </p>
+        )}
+
+        {results.length > 0 && (
+          <div style={{ marginTop: "10px", borderTop: "1px solid #ccc", paddingTop: "10px" }}>
+            <strong>比對結果：</strong>
+            <List height={400} width={400} itemCount={currentResults.length} itemSize={35}>
+              {({ index, style }) => {
+                const { name, similarity } = currentResults[index];
+                return (
+                  <div key={name} style={style}>
+                    <span style={{ color: geneColors[name] || "#000" }}>{name}</span> — {similarity.toFixed(1)}%
+                  </div>
+                );
+              }}
+            </List>
+            <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "10px" }}>
+              <button onClick={() => handleResultsPageChange("prev")} disabled={resultsPage === 0}>
+                上一頁
+              </button>
+              <span>第 {resultsPage + 1} 頁 / 共 {resultsTotalPages} 頁</span>
+              <button
+                onClick={() => handleResultsPageChange("next")}
+                disabled={resultsPage >= resultsTotalPages - 1}
+              >
+                下一頁
+              </button>
+            </div>
+          </div>
+        )}
+
+        {results.length === 0 && selectedGene && progress === null && (
+          <div style={{ marginTop: "10px", color: "gray" }}>
+            無相似基因
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 export default GeneSelector;
+
