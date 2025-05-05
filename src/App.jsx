@@ -135,7 +135,7 @@ function App() {
             />
             <Route
               path="/sequence-alignment"
-              element={<SequencealignmentAPP />} 
+              element={<SequencealignmentAPP haplotypeContent={haplotypeContent} />}
             />
           </Routes>
 
