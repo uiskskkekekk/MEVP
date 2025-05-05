@@ -8,14 +8,14 @@ const GeneTable = ({
   geneColors,
   setCityGeneData,
   onEditGeneCount,
-  setCurrentPage, // 這行是新加的，讓搜尋時可以跳回第1頁
+  setCurrentPage,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const locations = [
-    "台北", "新北", "基隆", "桃園", "新竹", "苗栗", "台中",
-    "彰化", "南投", "雲林", "嘉義", "台南", "高雄", "屏東",
-    "花蓮", "台東", "宜蘭",
+    "Taipei", "New Taipei", "Keelung", "Taoyuan", "Hsinchu", "Miaoli", "Taichung",
+    "Changhua", "Nantou", "Yunlin", "Chiayi", "Tainan", "Kaohsiung", "Pingtung",
+    "Hualien", "Taitung", "Yilan",
   ];
 
   const filteredGenes = useMemo(() => {
@@ -52,8 +52,6 @@ const GeneTable = ({
 
   const handleEditGeneCount = (geneName, location, newValue) => {
     const updatedCount = Math.max(0, Number(newValue) || 0);
-
-    console.log(`Editing gene: ${geneName}, location: ${location}, new count: ${updatedCount}`);
     onEditGeneCount(geneName, location, updatedCount);
     setTimeout(() => updateMapData([location]), 0);
   };
@@ -61,7 +59,7 @@ const GeneTable = ({
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     if (setCurrentPage) {
-      setCurrentPage(1); // 搜尋時自動回到第1頁
+      setCurrentPage(1);
     }
   };
 
@@ -78,57 +76,65 @@ const GeneTable = ({
         />
       </div>
 
-      <table border="1">
-        <thead>
-          <tr>
-            <th>基因</th>
-            {locations.map((loc) => (
-              <th key={loc}>{loc}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedGenes.length > 0 ? (
-            paginatedGenes.map((gene) => (
-              <tr key={gene.name}>
-                <td>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: "12px",
-                      height: "12px",
-                      backgroundColor: geneColors[gene.name] || "black",
-                      marginRight: "5px",
-                    }}
-                  ></span>
-                  {gene.name}
-                </td>
-                {locations.map((loc) => (
-                  <td key={`${gene.name}-${loc}`}>
-                    <input
-                      type="number"
-                      min="0"
-                      value={gene.counts?.[loc] || 0}
-                      onChange={(e) =>
-                        handleEditGeneCount(gene.name, loc, e.target.value)
-                      }
-                      style={{ width: "40px" }}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={locations.length + 1}>無基因數據</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <table border="1" style={{ tableLayout: "auto", width: "100%", borderCollapse: "collapse" }}>
+  <thead>
+    <tr>
+      <th style={{ minWidth: "180px", textAlign: "left", whiteSpace: "normal" }}>基因</th>
+      {locations.map((loc) => (
+        <th key={loc} style={{ width: "80px", textAlign: "center" }}>{loc}</th>
+      ))}
+    </tr>
+  </thead>
+  <tbody>
+    {paginatedGenes.length > 0 ? (
+      paginatedGenes.map((gene) => (
+        <tr key={gene.name}>
+          <td
+            style={{
+              minWidth: "180px",
+              textAlign: "left",
+              whiteSpace: "normal",
+              wordWrap: "break-word",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: geneColors[gene.name] || "black",
+                marginRight: "5px",
+              }}
+            ></span>
+            {gene.name}
+          </td>
+          {locations.map((loc) => (
+            <td key={`${gene.name}-${loc}`} style={{ width: "80px", textAlign: "center" }}>
+              <input
+                type="number"
+                min="0"
+                value={gene.counts?.[loc] || 0}
+                onChange={(e) =>
+                  handleEditGeneCount(gene.name, loc, e.target.value)
+                }
+                style={{ width: "50px", textAlign: "center" }}
+              />
+            </td>
+          ))}
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan={locations.length + 1} style={{ textAlign: "center" }}>
+          無基因數據
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
+
     </div>
   );
 };
 
 export default GeneTable;
-
-
