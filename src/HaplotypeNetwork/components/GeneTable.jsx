@@ -20,6 +20,36 @@ const GeneTable = ({
     "Hualien", "Taitung", "Yilan",
   ];
 
+  useEffect(() => {
+    const updatedGenes = genes.map((gene) => {
+      const newCounts = { ...gene.counts };
+      let modified = false;
+  
+      locations.forEach((loc) => {
+        if (
+          gene.name.toLowerCase().includes(loc.toLowerCase()) &&
+          !newCounts[loc]
+        ) {
+          newCounts[loc] = 1;
+          modified = true;
+          console.log(`[自動偵測] 基因 "${gene.name}" 中含有地名 "${loc}"，已新增 count = 1`);
+        }
+      });
+  
+      return modified ? { ...gene, counts: newCounts } : gene;
+    });
+  
+    const hasChanges = updatedGenes.some((gene, idx) =>
+      gene !== genes[idx]
+    );
+  
+    if (hasChanges) {
+      console.log(`[自動偵測] 共更新 ${updatedGenes.filter((g, i) => g !== genes[i]).length} 筆基因資料`);
+      onEditGeneCountBulk(updatedGenes);
+    }
+  }, [genes]);
+  
+
   // 過濾基因資料，依照搜尋條件
   const filteredGenes = useMemo(() => {
     return genes.filter((gene) =>
