@@ -5,27 +5,31 @@ import GeneTable from "./components/GeneTable";
 import GeneSelector from "./components/GeneSelector";
 import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMapComponent";
 
+// 生成基因顏色的函數
 const generateColors = (num) =>
   Array.from({ length: num }, (_, i) => `hsl(${(i * 137) % 360}, 70%, 50%)`);
 
 const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
-  const [activeSection, setActiveSection] = useState("taiwanMap");
-  const [genes, setGenes] = useState([]);
-  const [geneColors, setGeneColors] = useState({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedGene, setSelectedGene] = useState(null);
-  const [activeSimilarityGroup, setActiveSimilarityGroup] = useState([]);
-  const [cityUpdateFlags, setCityUpdateFlags] = useState({});
-  const [cityGeneData, setCityGeneData] = useState({});
-  const workerRef = useRef(null);
+  // 狀態變量
+  const [activeSection, setActiveSection] = useState("taiwanMap"); // 目前顯示的區塊 (地圖 or 基因組件)
+  const [genes, setGenes] = useState([]); // 基因數據
+  const [geneColors, setGeneColors] = useState({}); // 基因顏色映射
+  const [currentPage, setCurrentPage] = useState(1); // 當前頁面
+  const [selectedGene, setSelectedGene] = useState(null); // 當前選中的基因
+  const [activeSimilarityGroup, setActiveSimilarityGroup] = useState([]); // 目前選中的相似性基因群組
+  const [cityUpdateFlags, setCityUpdateFlags] = useState({}); // 城市更新標誌
+  const [cityGeneData, setCityGeneData] = useState({}); // 城市基因數據
+  const workerRef = useRef(null); // 用來儲存 Web Worker 的引用
 
+  // 每頁顯示的基因數量
   const genesPerPage = 100;
-  const totalPages = Math.ceil(genes.length / genesPerPage);
+  const totalPages = Math.ceil(genes.length / genesPerPage); // 計算總頁數
   const paginatedGenes = genes.slice(
     (currentPage - 1) * genesPerPage,
     currentPage * genesPerPage
-  );
+  ); // 當前頁的基因數據
 
+  // 更新地圖數據的函數
   const updateMapData = (updatedCities) => {
     const partialData = {};
     updatedCities.forEach((city) => {
@@ -37,6 +41,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
       partialData[city] = cityData;
     });
 
+    // 更新城市標誌
     setCityUpdateFlags((prev) => {
       const next = { ...prev };
       updatedCities.forEach((city) => {
@@ -53,14 +58,17 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     }
   };
 
+  // 顯示所有基因的函數
   const showAllGenes = () => setSelectedGene(null);
 
+  // 從後端載入基因數量的函數
   const loadGeneCountsFromBackend = async (geneNames) => {
     try {
       const res = await fetch("/api/getGeneCounts");
       const data = await res.json();
       const countMap = new Map(data.genes.map((g) => [g.name, g.counts]));
 
+      // 更新基因數據
       const updatedGenes = geneNames.map((name) => ({
         name,
         counts: countMap.get(name) || {},
@@ -68,6 +76,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
 
       setGenes(updatedGenes);
 
+      // 整合所有城市的基因數據
       const fullCityData = {};
       updatedGenes.forEach((gene) => {
         Object.entries(gene.counts).forEach(([city, count]) => {
@@ -85,6 +94,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     }
   };
 
+  // 儲存基因數量到後端的函數
   const saveGeneCountsToBackend = async (updatedGenes) => {
     try {
       const res = await fetch("/api/saveGeneCounts", {
@@ -99,6 +109,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     }
   };
 
+  // 編輯單個基因數量的處理函數
   const handleEditGeneCount = (geneName, location, newValue) => {
     const updatedGenes = genes.map((gene) => {
       if (gene.name === geneName) {
@@ -116,7 +127,21 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     saveGeneCountsToBackend(updatedGenes);
   };
 
-  // 建立 fileWorker 並綁定處理訊息
+  // 批量編輯基因數量的處理函數
+  const handleEditGeneCountBulk = (updatedGenes) => {
+    setGenes(updatedGenes);
+    saveGeneCountsToBackend(updatedGenes);
+
+    // 更新受影響的城市
+    const updatedCities = new Set();
+    updatedGenes.forEach((gene) => {
+      Object.keys(gene.counts).forEach((city) => updatedCities.add(city));
+    });
+
+    updateMapData(Array.from(updatedCities));
+  };
+
+  // 建立並綁定 Web Worker 處理基因資料的訊息
   useEffect(() => {
     if (window.Worker) {
       const fileWorker = new Worker(new URL("./workers/fileWorker.js", import.meta.url), {
@@ -124,6 +149,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
       });
       workerRef.current = fileWorker;
 
+      // 處理 Web Worker 的回應
       fileWorker.onmessage = async (event) => {
         const { sequences } = event.data;
 
@@ -152,7 +178,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
     }
   }, []);
 
-  // 自動處理從 App 傳來的檔案內容
+  // 自動處理來自 App 的檔案內容
   useEffect(() => {
     if (initialFileContent && workerRef.current) {
       workerRef.current.postMessage({
@@ -161,13 +187,10 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
       });
     }
   }, [initialFileContent]);
-  
 
+  // 渲染 UI
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "20px" }}>
-      {/* 可保留作為備用手動上傳 */}
-      {/* <input type="file" accept=".fa,.fasta,.txt" onChange={(e) => window.handleFileChange(e)} /> */}
-
       <div style={{ marginBottom: "20px" }}>
         <button onClick={() => setActiveSection("taiwanMap")}>ALL sequences</button>
         <button onClick={() => setActiveSection("geneComponents")}>sequences Components</button>
@@ -234,6 +257,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
           setCityGeneData={setCityGeneData}
           onEditGeneCount={handleEditGeneCount}
           setCurrentPage={setCurrentPage}
+          onEditGeneCountBulk={handleEditGeneCountBulk}
         />
       </div>
     </div>
@@ -241,4 +265,3 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
 };
 
 export default HaplotypeNetworkApp;
-
