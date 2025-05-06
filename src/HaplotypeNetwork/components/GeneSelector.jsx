@@ -179,7 +179,7 @@ const GeneSelector = ({
         {/* 處理中提示 */}
         {progress && (
           <p style={{ marginTop: "10px", color: "blue" }}>
-            正在比對中... ({progress.completed} / {progress.total})
+            正在比對中...
           </p>
         )}
 
