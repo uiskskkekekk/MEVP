@@ -18,6 +18,8 @@ import Tooltip from "react-bootstrap/Tooltip";
 import ContextMenu from "./phylotree/ContextMenu.jsx"; // 導入 ContextMenu 組件
 import Phylotree from "./phylotree/phylotree.jsx";
 
+import commandRegistry from "../../commands/commandRegistry";
+
 import "../styles/phylotree.css";
 
 function Button(props) {
@@ -167,6 +169,39 @@ class PhylotreeApplication extends Component {
           nodeData: null,
         },
       });
+    }
+  }
+
+  componentDidMount() {
+    this.registerCommands();
+  }
+
+  registerCommands() {
+    // 為命令提供對該組件實例的引用
+    const instance = this;
+
+    // 更新命令註冊表中的命令，使其能夠訪問該實例
+    if (commandRegistry.phylotree) {
+      // 寬度調整命令
+      if (commandRegistry.phylotree.adjustWidth) {
+        const originalExecute = commandRegistry.phylotree.adjustWidth.execute;
+        commandRegistry.phylotree.adjustWidth.execute = (params) =>
+          originalExecute({ ...params, instance });
+      }
+
+      // 高度調整命令
+      if (commandRegistry.phylotree.adjustHeight) {
+        const originalExecute = commandRegistry.phylotree.adjustHeight.execute;
+        commandRegistry.phylotree.adjustHeight.execute = (params) =>
+          originalExecute({ ...params, instance });
+      }
+
+      // 尺寸調整命令
+      if (commandRegistry.phylotree.adjustSize) {
+        const originalExecute = commandRegistry.phylotree.adjustSize.execute;
+        commandRegistry.phylotree.adjustSize.execute = (params) =>
+          originalExecute({ ...params, instance });
+      }
     }
   }
 

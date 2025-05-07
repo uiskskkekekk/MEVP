@@ -1,5 +1,6 @@
 // src/Chat/FloatingChatManager.jsx
 import { useState } from "react";
+import commandExecutor from "../commands/commandExecutor";
 import ChatInterface from "./components/ChatInterface";
 import DraggableWindow from "./components/DraggableWindow";
 import "./styles/floating-chat-manager.css";
@@ -32,7 +33,6 @@ const calculateInitialPosition = () => {
 function FloatingChatManager() {
   const [isVisible, setIsVisible] = useState(false);
   const [messages, setMessages] = useState([]);
-  const apiEndpoint = "http://llm-api:8000/l27b"; // API端點
 
   const toggleChat = () => {
     setIsVisible(!isVisible);
@@ -43,9 +43,22 @@ function FloatingChatManager() {
   };
 
   const closeChat = () => {
-    // 關閉並清除聊天記錄
     setMessages([]);
     setIsVisible(false);
+  };
+
+  const handleExecuteCommand = (command) => {
+    if (!command) return;
+
+    console.log("收到命令:", command);
+
+    // 執行命令
+    const result = commandExecutor.execute(command);
+
+    // 記錄結果
+    console.log("命令執行結果:", result);
+
+    // 可以在這裡添加更多處理邏輯，如顯示執行結果等
   };
 
   return (
@@ -80,9 +93,9 @@ function FloatingChatManager() {
           initialPosition={calculateInitialPosition()}
         >
           <ChatInterface
-            apiEndpoint={apiEndpoint}
             messages={messages}
             setMessages={setMessages}
+            onExecuteCommand={handleExecuteCommand}
           />
         </DraggableWindow>
       )}

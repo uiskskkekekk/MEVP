@@ -1,8 +1,9 @@
 // src/Chat/components/ChatInterface.jsx
 import { useEffect, useRef, useState } from "react";
+import { sendLLMQuery } from "../../../server/src/services/llmService";
 import "../styles/chat.css";
 
-function ChatInterface({ apiEndpoint, messages, setMessages }) {
+function ChatInterface({ messages, setMessages, onExecuteCommand }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -25,18 +26,19 @@ function ChatInterface({ apiEndpoint, messages, setMessages }) {
     setIsLoading(true);
 
     try {
-      // 模擬API響應（開發測試用）
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockResponse = {
-        data: `這是對 "${input}" 的模擬回應。`,
-      };
+      const response = await sendLLMQuery(input);
 
       const aiMessage = {
         role: "assistant",
-        content: mockResponse.data,
+        content: response.rawResponse || "No response received",
+        command: response.command,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
+      if (response.command && onExecuteCommand) {
+        onExecuteCommand(response.command);
+      }
     } catch (error) {
       console.error("Error fetching LLM response:", error);
       const errorMessage = {
