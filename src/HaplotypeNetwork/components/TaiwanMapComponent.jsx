@@ -3,7 +3,9 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import TaiwanMapImage from "../../assets/haplotype/TW.png";
 import { cityCoordinates } from "../data/cityCoordinates";
 
-// 比對是否重渲染 PieChart
+//
+// 判斷 PieChart 是否需要重新渲染（提升效能）
+//
 const areEqual = (prevProps, nextProps) => {
   if (prevProps.city !== nextProps.city) return false;
   if (prevProps.chartData.totalCount !== nextProps.chartData.totalCount) return false;
@@ -22,7 +24,9 @@ const areEqual = (prevProps, nextProps) => {
   return true;
 };
 
-// 單一城市 Pie 圖元件
+//
+// 單一城市圓餅圖元件（已記憶化）
+//
 const CityPieChart = memo(({ city, chartData, geneColors, position }) => {
   const { data, totalCount } = chartData;
   const outerRadius = Math.min(10 + Math.floor(totalCount / 10) * 10, 50);
@@ -48,50 +52,55 @@ const CityPieChart = memo(({ city, chartData, geneColors, position }) => {
   );
 }, areEqual);
 
-// 主元件
+//
+// 台灣地圖主元件
+//
 const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
   const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });
-  const [selectedGenes, setSelectedGenes] = useState(() =>
-    Array.from(new Set(Object.values(cityGeneData).flat().map((g) => g.name)))
-  );
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const [selectedGenes, setSelectedGenes] = useState([]);
+
   const genesPerPage = 100;
 
+  // 所有基因名稱列表
   const allGenes = useMemo(() => genes.map((g) => g.name), [genes]);
 
+  // 初始設定選取全部基因
   useEffect(() => {
     setSelectedGenes(allGenes);
   }, [allGenes]);
 
+  // 搜尋過濾後的基因清單
   const filteredGeneList = useMemo(() => {
     return allGenes.filter((name) =>
       name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allGenes, searchTerm]);
 
+  // 當前頁面的基因清單
   const currentGenes = filteredGeneList.slice(
     currentPage * genesPerPage,
     (currentPage + 1) * genesPerPage
   );
   const totalPages = Math.ceil(filteredGeneList.length / genesPerPage);
 
+  // 切換基因選取狀態
   const toggleGene = (name) => {
     setSelectedGenes((prev) =>
       prev.includes(name) ? prev.filter((g) => g !== name) : [...prev, name]
     );
   };
 
+  // 全選與清除
   const handleSelectAll = () => setSelectedGenes(filteredGeneList);
   const handleClearAll = () => setSelectedGenes([]);
 
+  // 根據選取基因過濾城市資料
   const filteredCityGeneData = useMemo(() => {
     const result = {};
     for (const [city, genes] of Object.entries(cityGeneData)) {
-      if (!Array.isArray(genes)) {
-        
-        continue;
-      }
+      if (!Array.isArray(genes)) continue;
 
       const data = genes.filter((g) => selectedGenes.includes(g.name));
       if (data.length > 0) {
@@ -102,6 +111,7 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
     return result;
   }, [cityGeneData, selectedGenes]);
 
+  // 滑鼠移動時更新經緯度顯示
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -115,7 +125,7 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
 
   return (
     <div style={{ display: "flex", gap: "10px" }}>
-      {/* 地圖區域 */}
+      {/* 台灣地圖區塊 */}
       <div
         style={{ position: "relative", width: `400px`, height: `600px` }}
         onMouseMove={handleMouseMove}
@@ -130,6 +140,7 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
             position={cityCoordinates[city]}
           />
         ))}
+        {/* 經緯度顯示 */}
         <div
           style={{
             position: "absolute",
@@ -147,9 +158,10 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
         </div>
       </div>
 
-      {/* 基因選單區域 */}
-      <div style={{ display: "flex", flexDirection: "column", width: "700px" }}>
-        <div style={{ flex: "1", overflowY: "auto", maxHeight: "560px" }}>
+      {/* 基因選擇區塊 */}
+      <div style={{ display: "flex", flexDirection: "column", width: "700px", height: "100%" }}>
+        {/* 搜尋與操作欄位 */}
+        <div style={{ flexShrink: 0 }}>
           <h4>選擇顯示基因：</h4>
           <input
             type="text"
@@ -162,8 +174,30 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
             <button onClick={handleSelectAll}>全選</button>
             <button onClick={handleClearAll}>清除選擇</button>
           </div>
+        </div>
+
+        {/* 基因勾選清單（可捲動） */}
+        <div
+          style={{
+            overflowY: "auto",
+            maxHeight: "480px",
+            flexGrow: 1,
+            paddingRight: "8px",
+            borderTop: "1px solid #ccc",
+            borderBottom: "1px solid #ccc",
+            marginBottom: "8px",
+          }}
+        >
           {currentGenes.map((name) => (
-            <label key={name} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <label
+              key={name}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 0",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={selectedGenes.includes(name)}
@@ -175,11 +209,23 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors }) => {
         </div>
 
         {/* 分頁控制 */}
-        <div style={{ marginTop: "10px", display: "flex", gap: "10px", justifyContent: "center" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            gap: "10px",
+            justifyContent: "center",
+          }}
+        >
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+            disabled={currentPage === 0}
+          >
             上一頁
           </button>
-          <span>第 {currentPage + 1} 頁 / 共 {totalPages} 頁</span>
+          <span>
+            第 {currentPage + 1} 頁 / 共 {totalPages} 頁
+          </span>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={currentPage >= totalPages - 1}
