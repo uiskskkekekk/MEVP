@@ -1,6 +1,5 @@
 const axios = require("axios");
 
-// 處理LLM請求
 exports.processLLMRequest = async (req, res) => {
   try {
     const { query } = req.body;
@@ -11,12 +10,12 @@ exports.processLLMRequest = async (req, res) => {
       });
     }
 
-    // 增強提示詞，要求LLM返回結構化命令
     const prompt = `You are a command parser. Convert user input: "${query}" into a JSON command.
 
     Strictly follow these rules:
     1. Return only valid JSON, without any additional text
     2. If unable to parse as a known command, return {"action":"unknown","target":"unknown"}
+    3. All parameters must be appropriate data types
 
     Supported command format:
     {"action":"action type","target":"phylotree","parameters":{"parameter name":parameter value}}
@@ -25,11 +24,13 @@ exports.processLLMRequest = async (req, res) => {
     - phylotree
 
     Supported actions:
-    - adjustWidth (parameters:width)
-    - adjustHeight (parameters:height)
-    - adjustSize (parameters:width,height) Note: width comes first, height second. Please correct if user inputs them in reverse order
-    - expand (parameters:dimension,amount)
-    - compress (parameters:dimension,amount)`;
+    - adjustWidth (parameters:width [NUMBER]): 調整系統發育樹視圖的寬度，以像素為單位。例如，設置為800像素可使樹視圖具有適當的水平空間。
+
+    - adjustHeight (parameters:height [NUMBER]): 調整系統發育樹視圖的高度，以像素為單位。增加高度可在分支較多時提供更好的垂直間距。
+
+    - adjustSize (parameters:width [NUMBER],height [NUMBER]): 同時調整系統發育樹視圖的寬度和高度，以像素為單位。這可以一次性調整整個視圖的尺寸比例。
+
+    - thresholdCollapse (parameters:threshold [NUMBER]): 根據分支長度自動折疊節點。當節點的分支長度大於或等於指定閾值時，該節點及其子節點將被折疊。這對於簡化具有長分支的複雜樹非常有用。`;
 
     // 發送請求到Ollama API
     const response = await axios.post(
@@ -41,10 +42,8 @@ exports.processLLMRequest = async (req, res) => {
       }
     );
 
-    // 返回LLM回應
     const rawResponse = response.data.response;
 
-    // 從回應中提取JSON命令
     let command = null;
     try {
       // 使用正則表達式尋找JSON對象

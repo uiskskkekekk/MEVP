@@ -88,6 +88,35 @@ const commandRegistry = {
         return result;
       },
     },
+
+    thresholdCollapse: {
+      execute: (params) => {
+        const { threshold, instance } = params || {};
+
+        if (!instance) {
+          return { success: false, error: "系統發育樹實例未找到" };
+        }
+
+        if (typeof threshold !== "number" || isNaN(threshold)) {
+          return { success: false, error: "請提供有效的閾值" };
+        }
+
+        try {
+          // 調用實例的 handleThresholdCollapse 方法
+          instance.handleThresholdCollapse(threshold);
+
+          return {
+            success: true,
+            message: `已根據閾值 ${threshold} 進行節點折疊`,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `執行節點折疊時出錯: ${error.message}`,
+          };
+        }
+      },
+    },
   },
 };
 

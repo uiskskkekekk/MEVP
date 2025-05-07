@@ -202,6 +202,13 @@ class PhylotreeApplication extends Component {
         commandRegistry.phylotree.adjustSize.execute = (params) =>
           originalExecute({ ...params, instance });
       }
+
+      if (commandRegistry.phylotree.thresholdCollapse) {
+        const originalExecute =
+          commandRegistry.phylotree.thresholdCollapse.execute;
+        commandRegistry.phylotree.thresholdCollapse.execute = (params) =>
+          originalExecute({ ...params, instance });
+      }
     }
   }
 

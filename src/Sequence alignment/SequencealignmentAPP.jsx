@@ -1,106 +1,113 @@
 import React, { useEffect, useState } from "react";
+import "./SequencealignmentAPP.css"; // 引入 CSS 文件
 
-const ITEMS_PER_PAGE = 10;
-
-const parseFasta = (content) => {
-  const sequences = {};
-  const lines = content.split(/\r?\n/);
-  let currentGene = null;
-
-  lines.forEach((line) => {
-    if (line.startsWith(">")) {
-      currentGene = line.slice(1).trim();
-      sequences[currentGene] = "";
-    } else if (currentGene) {
-      sequences[currentGene] += line.trim();
-    }
-  });
-
-  return sequences;
-};
-
-const SequenceAlignmentApp = ({ haplotypeContent }) => {
-  const [geneNames, setGeneNames] = useState([]);
-  const [sequences, setSequences] = useState({});
-  const [selectedGene, setSelectedGene] = useState(null);
-  const [selectedSequence, setSelectedSequence] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+function SequencealignmentAPP({ haplotypeContent }) {
+  const [sequences, setSequences] = useState([]);
+  const [result, setResult] = useState("");
 
   useEffect(() => {
     if (haplotypeContent) {
-      const parsed = parseFasta(haplotypeContent);
-      const names = Object.keys(parsed);
+      const parsedSequences = parseFasta(haplotypeContent);
+      setSequences(parsedSequences);
 
-      setSequences(parsed);
-      setGeneNames(names);
-      setTotalPages(Math.ceil(names.length / ITEMS_PER_PAGE));
-      setCurrentPage(1);
-      setSelectedGene(null);
-      setSelectedSequence("");
+      const output = parsedSequences
+        .map(
+          (seq) =>
+            `<div class="sequence-line"><strong>${seq.id}</strong></div>
+              <div class="sequence-string">${colorSequence(seq.sequence)}</div>`
+        )
+        .join("");
+
+      setResult(output);
     }
   }, [haplotypeContent]);
 
-  const handleGeneClick = (geneName) => {
-    setSelectedGene(geneName);
-    setSelectedSequence(sequences[geneName] || "⚠️ 找不到序列");
+  const parseFasta = (text) => {
+    const sequences = [];
+    const lines = text.split("\n");
+    let currentId = "";
+    let currentSeq = "";
+
+    for (const line of lines) {
+      if (line.startsWith(">")) {
+        if (currentId) {
+          sequences.push({ id: currentId, sequence: currentSeq });
+        }
+        currentId = line.substring(1).trim();
+        currentSeq = "";
+      } //else {
+      //   // 刪除序列中的所有 '-'
+      //   currentSeq += line.trim().replace(/-/g, "");
+      // }
+    }
+
+    if (currentId) {
+      sequences.push({ id: currentId, sequence: currentSeq });
+    }
+
+    return sequences;
   };
 
-  const currentPageGenes = geneNames.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const colorSequence = (sequence) => {
+    return sequence
+      .split("")
+      .map((char, index) => {
+        let colorClass = "";
+        switch (char.toLowerCase()) {
+          case "a":
+            colorClass = "color-a";
+            break;
+          case "t":
+            colorClass = "color-t";
+            break;
+          case "c":
+            colorClass = "color-c";
+            break;
+          case "g":
+            colorClass = "color-g";
+            break;
+          default:
+            colorClass = "color-other";
+        }
+        return `<span class="${colorClass}" key="${index}">${char}</span>`;
+      })
+      .join("");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!file) {
+      alert("沒有選擇文件");
+      return;
+    }
+
+    try {
+      const sequences = await readFastaFile(file);
+      if (sequences.length === 0) {
+        setResult(["文件中沒有任何字串"]);
+        return;
+      }
+
+      const output = sequences
+        .map(
+          (seq) =>
+            `<div class="sequence-line"><strong>${seq.id}</strong></div>
+         <div class="sequence-string">${colorSequence(seq.sequence)}</div>`
+        )
+        .join("");
+      setResult(output);
+    } catch (error) {
+      console.error("文件處理失敗:", error);
+      setResult(["文件處理失敗"]);
+    }
+  };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-2">🧬 Sequence Alignment Viewer</h2>
-
-      <div className="flex">
-        <div className="w-1/3 pr-4">
-          <h3 className="font-semibold mb-1">
-            基因清單 (第 {currentPage} 頁 / 共 {totalPages} 頁):
-          </h3>
-          <ul className="border rounded max-h-96 overflow-auto">
-            {currentPageGenes.map((name) => (
-              <li
-                key={name}
-                className={`p-2 cursor-pointer hover:bg-blue-100 ${
-                  selectedGene === name ? "bg-blue-200" : ""
-                }`}
-                onClick={() => handleGeneClick(name)}
-              >
-                {name}
-              </li>
-            ))}
-          </ul>
-          <div className="flex justify-between mt-2">
-            <button
-              className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              ◀ 上一頁
-            </button>
-            <button
-              className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              下一頁 ▶
-            </button>
-          </div>
-        </div>
-
-        <div className="w-2/3">
-          <h3 className="font-semibold mb-1">基因序列:</h3>
-          <div className="border rounded p-3 bg-gray-50 whitespace-pre-wrap max-h-96 overflow-auto">
-            {selectedGene ? selectedSequence : "請選擇一個基因以查看序列。"}
-          </div>
-        </div>
-      </div>
+    <div>
+      <div className="result" dangerouslySetInnerHTML={{ __html: result }} />
     </div>
   );
-};
+}
 
-export default SequenceAlignmentApp;
-
+export default SequencealignmentAPP;
