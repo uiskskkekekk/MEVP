@@ -35,10 +35,10 @@ function SequencealignmentAPP({ haplotypeContent }) {
         }
         currentId = line.substring(1).trim();
         currentSeq = "";
-      } //else {
-      //   // 刪除序列中的所有 '-'
-      //   currentSeq += line.trim().replace(/-/g, "");
-      // }
+      } else {
+        // 刪除序列中的所有 '-'
+        currentSeq += line.trim().replace(/ /g, "");
+      }
     }
 
     if (currentId) {
