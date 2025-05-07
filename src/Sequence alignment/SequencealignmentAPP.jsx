@@ -13,8 +13,12 @@ function SequencealignmentAPP({ haplotypeContent }) {
       const output = parsedSequences
         .map(
           (seq) =>
-            `<div class="sequence-line"><strong>${seq.id}</strong></div>
-              <div class="sequence-string">${colorSequence(seq.sequence)}</div>`
+            `<div class="sequence-line" style="display: flex; align-items: center; margin-bottom: 10px;">
+           <strong style="flex: 0 0 auto;">${seq.id}</strong>
+           <div class="sequence-string" style="overflow-x: auto; white-space: nowrap; flex: 1 1 auto;">
+             ${colorSequence(seq.sequence)}
+           </div>
+         </div>`
         )
         .join("");
 
@@ -105,7 +109,11 @@ function SequencealignmentAPP({ haplotypeContent }) {
 
   return (
     <div>
-      <div className="result" dangerouslySetInnerHTML={{ __html: result }} />
+      <div className="result" dangerouslySetInnerHTML={{ __html: paginatedResult.join('') }} />
+      <div className="pagination">
+        <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 0}>上一頁</button>
+        <button className="pagination-button" onClick={handleNextPage} disabled={(currentPage + 1) * itemsPerPage >= result.length}>下一頁</button>
+      </div>
     </div>
   );
 }
