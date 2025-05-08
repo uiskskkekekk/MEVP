@@ -9,13 +9,37 @@ A molecular evolution visualization platform
 ```
 git clone https://github.com/uiskskkekekk/MEVP
 cd MEVP
-yarn
+yarn (or npm install)
 ```
 
 ### Develop
 
+yarn：
+
 ```
 yarn dev
+```
+
+npm：
+
+```
+npm run dev
+```
+
+### Backend Develop
+
+yarn：
+
+```
+cd server
+yarn dev
+```
+
+npm：
+
+```
+cd server
+npm run dev
 ```
 
 ### Directory structure
