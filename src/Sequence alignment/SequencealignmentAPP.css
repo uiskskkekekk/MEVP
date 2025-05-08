@@ -99,3 +99,36 @@ input[type="text"] {
   padding: 5px;
   width: 300px; /* 輸入框寬度 */
 }
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.pagination-button {
+  background-color: #4CAF50; /* 綠色背景 */
+  border: none; /* 無邊框 */
+  color: white; /* 白色字體 */
+  padding: 10px 20px; /* 內邊距 */
+  text-align: center; /* 文字置中 */
+  text-decoration: none; /* 無下劃線 */
+  display: inline-block; /* 內聯塊元素 */
+  font-size: 16px; /* 字體大小 */
+  margin: 0 5px; /* 按鈕之間的間距 */
+  cursor: pointer; /* 鼠標指針 */
+  border-radius: 5px; /* 圓角 */
+  transition: background-color 0.3s; /* 背景顏色過渡效果 */
+}
+
+.pagination-button:hover {
+  background-color: #45a049; /* 懸停時變色 */
+}
+
+.pagination-button:disabled {
+  background-color: #ccc; /* 禁用時的顏色 */
+  cursor: not-allowed; /* 禁用狀態的指針 */
+}
+.table-container {
+width: 100%;
+border: 1px solid #ddd;
+}
