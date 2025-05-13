@@ -45,12 +45,7 @@ h1 {
 }
 .result {
   text-align: left; /* 將結果內容設置為左對齊 */
-  max-width: 800px; /* 限制結果區域的最大寬度 */
-  width: 100%; /* 使結果區域佔滿可用寬度 */
-  margin: 0 auto; /* 使結果區域居中 */
-  background-color: white; /* 白色背景 */
   border-radius: 8px; /* 圓角 */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* 陰影效果 */
   padding: 20px; /* 內邊距 */
 }
 
@@ -63,10 +58,7 @@ h1 {
 }
 
 .sequence-string {
-  display: inline-block; /* 使序列在一行中顯示 */
-  white-space: nowrap; /* 防止換行 */
   overflow-x: auto; /* 允許橫向滾動 */
-  margin-bottom: 10px; /* 每個序列之間的間距 */
   max-width: 100%; /* 限制最大寬度 */
   padding: 5px; /* 內邊距 */
   border: 1px solid #ddd; /* 邊框 */
