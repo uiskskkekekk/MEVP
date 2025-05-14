@@ -1,0 +1,35 @@
+PhylotreeRestructure/
+├── PhylotreeApp.jsx               # 主應用元件
+├── components/                    # 所有UI元件
+│   ├── controls/                  # 控制類元件
+│   │   ├── ControlButtons.jsx     # 按鈕控制
+│   │   ├── SizeControls.jsx       # 尺寸控制
+│   │   └── ExportControls.jsx     # 匯出功能
+│   ├── core/                      # 核心元件
+│   │   └── Phylotree.jsx          # 主樹元件
+│   ├── nodes/                     # 節點相關元件
+│   │   ├── Branch.jsx             # 分支元件
+│   │   ├── InternalNode.jsx       # 內部節點
+│   │   └── NodeLabel.jsx          # 節點標籤
+│   ├── axes/                      # 座標軸元件
+│   │   └── BranchLengthAxis.jsx   # 分支長度軸
+│   └── ui/                        # UI交互元件
+│       ├── ContextMenu.jsx        # 右鍵選單
+│       └── TooltipContainer.jsx   # 提示容器
+├── hooks/                         # 自訂Hooks
+│   ├── useTreeData.js             # 樹資料處理
+│   ├── useTreeLayout.js           # 樹布局計算
+│   ├── useNodeOperations.js       # 節點操作
+│   └── useExportFunctions.js      # 匯出功能
+├── utils/                         # 工具函數
+│   ├── treeUtils.js               # 樹操作工具
+│   ├── newickParser.js            # Newick解析
+│   ├── dimensionCalculator.js     # 尺寸計算
+│   └── textUtils.js               # 文字處理
+├── constants/                     # 常數定義
+│   └── treeConstants.js           # 樹常數
+├── shared/                        # 共享元件
+│   └── buttons/                   # 可重用按鈕元件
+│       └── IconButton.jsx         # 圖示按鈕
+└── styles/                        # 樣式文件
+    └── phylotree.css              # 主樣式表

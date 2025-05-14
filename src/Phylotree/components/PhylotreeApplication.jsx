@@ -9,7 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons"; //icona
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"; //icons
 import { phylotree } from "phylotree";
-import React, { Component } from "react";
+import { Component } from "react";
 import RBButton from "react-bootstrap/Button";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
@@ -259,7 +259,7 @@ class PhylotreeApplication extends Component {
 
     // 檢查節點是否已折疊且尚未存入merged
     const isCollapsed = this.state.collapsedNodes.has(nodeId);
-    const isInMerged = this.state.merged.hasOwnProperty(nodeId);
+    // const isInMerged = this.state.merged.hasOwnProperty(nodeId);
 
     // 檢查是否為空字串
     if (newName.trim() === "") {
@@ -277,7 +277,8 @@ class PhylotreeApplication extends Component {
         }
       );
     } else {
-      if (isCollapsed && !isInMerged && this.state.treeInstance) {
+      if (isCollapsed && this.state.treeInstance) {
+      // if (isCollapsed && !isInMerged && this.state.treeInstance) {
         // 找到對應的點
         const findNode = (id, node) => {
           if (!node) return null;
@@ -355,7 +356,7 @@ class PhylotreeApplication extends Component {
   };
 
   updateTree = () => {
-    const { newick, treeInstance, collapsedNodes, renamedNodes } = this.state;
+    const { treeInstance, collapsedNodes, renamedNodes } = this.state;
 
     if (!treeInstance) {
       console.log("樹實例尚未準備好");
@@ -406,7 +407,7 @@ class PhylotreeApplication extends Component {
           collapsedNodes.delete(nodeId);
 
           if (
-            prevState.merged.hasOwnProperty(nodeId) &&
+            // prevState.merged.hasOwnProperty(nodeId) &&
             prevState.treeInstance
           ) {
             const subtreeNewick = prevState.merged[nodeId].subtreeNewick;
@@ -580,7 +581,8 @@ class PhylotreeApplication extends Component {
           : ""; // 是否有分支長度
 
         // 是否需要引號（如果新名稱包含特殊字符）
-        const needQuotes = /[,;:()\[\]]/g.test(newName);
+        // const needQuotes = /[,;:()\[\]]/g.test(newName);
+        const needQuotes = /[,;:()[\]]/g.test(newName);
         if (needQuotes) {
           return `'${newName}'${branchLength}`;
         } else {
@@ -595,7 +597,8 @@ class PhylotreeApplication extends Component {
       const branchLength = node.data.attribute ? `:${node.data.attribute}` : "";
 
       // 檢查是否需要引號
-      const needQuotes = /[,;:()\[\]]/g.test(name);
+      // const needQuotes = /[,;:()\[\]]/g.test(name);
+      const needQuotes = /[,;:()[\]]/g.test(name);
       if (needQuotes) {
         return `'${name}'${branchLength}`;
       } else {
@@ -736,7 +739,7 @@ class PhylotreeApplication extends Component {
 
   render() {
     const { padding } = this.props;
-    const { width, height, clickedBranch, contextMenu, collapsedNodes } =
+    const { width, height, clickedBranch, contextMenu } =
       this.state;
 
     const svgWidth = width + padding * 4; // 增加左右邊距
@@ -826,6 +829,10 @@ class PhylotreeApplication extends Component {
               </div>
             </div>{" "}
             {/*button group container*/}
+            <div className="search-container">
+              <input name="sequenceName" placeholder="Species Name"/>
+              <button>Search</button>
+            </div>
           </div>{" "}
           {/*phylotree container*/}
         </div>

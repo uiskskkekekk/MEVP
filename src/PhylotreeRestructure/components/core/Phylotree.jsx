@@ -1,18 +1,18 @@
 import { max } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { phylotree } from "phylotree";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-import text_width from "../../utils/text_width.js";
+import calculateTextWidth from "../../utils/textUtils.js";
 import {
   collectInternalNodes,
   getHiddenBranches,
   shouldHideInternalNode,
-} from "../../utils/tree-utils.js";
-import BranchLengthAxis from "./BranchLengthAxis.jsx";
-import InternalNode from "./InternalNode.jsx";
-import NodeLabel from "./NodeLabel.jsx";
-import Branch from "./branch.jsx";
+} from "../../utils/treeUtils.js";
+import BranchLengthAxis from "../axes/BranchLengthAxis.jsx";
+import Branch from "../nodes/Branch.jsx";
+import InternalNode from "../nodes/InternalNode.jsx";
+import NodeLabel from "../nodes/NodeLabel.jsx";
 
 import "../../styles/phylotree.css";
 
@@ -385,7 +385,7 @@ function calculateOptimalDimensions(tree) {
       maxPathLength = node.data.abstract_x;
     }
     if (node.data.name) {
-      const labelWidth = text_width(node.data.name, 14, 100);
+      const labelWidth = calculateTextWidth(node.data.name, 14, 100);
       if (labelWidth > maxLabelWidth) {
         maxLabelWidth = labelWidth;
       }
@@ -506,7 +506,7 @@ function Phylotree(props) {
   const actualHeight = props.height || (dimensions ? dimensions.height : 500);
 
   function attachTextWidth(node) {
-    node.data.text_width = text_width(node.data.name, 14, maxLabelWidth);
+    node.data.calculateTextWidth = calculateTextWidth(node.data.name, 14, maxLabelWidth);
     if (node.children) node.children.forEach(attachTextWidth);
   }
   attachTextWidth(tree.nodes);
@@ -521,12 +521,12 @@ function Phylotree(props) {
   } else {
     for (let i = 0; i < sorted_tips.length; i++) {
       let tip = sorted_tips[i];
-      rightmost = actualWidth - tip.data.text_width;
+      rightmost = actualWidth - tip.data.calculateTextWidth;
       let scale = rightmost / tip.data.abstract_x;
       let none_cross = sorted_tips
         .map((tip) => {
           const tip_x = tip.data.abstract_x * scale,
-            text_x = actualWidth - tip.data.text_width,
+            text_x = actualWidth - tip.data.calculateTextWidth,
             this_doesnt_cross = Math.floor(tip_x) < Math.ceil(text_x);
           return this_doesnt_cross;
         })
