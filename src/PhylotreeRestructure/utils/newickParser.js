@@ -1,3 +1,5 @@
+import { phylotree } from "phylotree";
+
 /**
  * 將樹結構轉換為Newick格式
  * @param {Object} node - 樹節點
@@ -80,3 +82,18 @@ export function findNodeById(tree, nodeId) {
   });
   return foundNode;
 }
+
+/**
+ * 解析Newick字符串为树结构
+ * @param {string} newickString - Newick格式字符串
+ * @returns {Object} 解析后的树结构
+ */
+export const parseNewick = (newickString) => {
+  if (!newickString) return null;
+  try {
+    return new phylotree(newickString);
+  } catch (error) {
+    console.error("解析Newick字符串时出错:", error);
+    return null;
+  }
+};

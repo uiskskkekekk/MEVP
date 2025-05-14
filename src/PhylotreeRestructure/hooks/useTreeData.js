@@ -1,6 +1,8 @@
+// hooks/useTreeData.js
+import { phylotree } from "phylotree";
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "../constants/treeConstants";
-import { convertTreeToNewick, findNodeById } from "../utils/newickParser";
+import { convertTreeToNewick } from "../utils/newickParser";
 
 /**
  * 管理樹的數據狀態
@@ -90,18 +92,23 @@ export function useTreeData(initialNewick) {
   }, []);
 
   /**
-   * 折疊或展開節點
+   * 根据ID查找节点
+   * @param {Object} rootNode - 根节点
+   * @param {string} nodeId - 要查找的节点ID
+   * @returns {Object|null} 找到的节点或null
    */
-  const toggleNodeCollapse = useCallback((nodeId, isCollapsed) => {
-    setCollapsedNodes((prev) => {
-      const newCollapsed = new Set(prev);
-      if (isCollapsed) {
-        newCollapsed.delete(nodeId);
-      } else {
-        newCollapsed.add(nodeId);
+  const findNodeById = useCallback((rootNode, nodeId) => {
+    if (!rootNode) return null;
+    if (rootNode.unique_id === nodeId) return rootNode;
+
+    if (rootNode.children) {
+      for (const child of rootNode.children) {
+        const found = findNodeById(child, nodeId);
+        if (found) return found;
       }
-      return newCollapsed;
-    });
+    }
+
+    return null;
   }, []);
 
   /**
@@ -127,18 +134,191 @@ export function useTreeData(initialNewick) {
     } catch (error) {
       console.error("更新樹時出錯:", error);
     }
-  }, [treeInstance, collapsedNodes, renamedNodes, convertTreeToNewick]);
+  }, [treeInstance, collapsedNodes, renamedNodes]);
+
+  /**
+   * 替換節點為子樹
+   * @param {Object} tree - 樹實例
+   * @param {string} leafNodeId - 葉節點ID
+   * @param {string} newNewick - 新的Newick字串
+   * @returns {string|null} 更新後的Newick字串或null
+   */
+  const replaceNodeWithSubtree = useCallback((tree, leafNodeId, newNewick) => {
+    console.log("開始替換節點，ID:", leafNodeId, "新Newick:", newNewick);
+
+    // 找到要替換的葉節點
+    let targetNode = null;
+    tree.traverse_and_compute((node) => {
+      if (node.unique_id === leafNodeId) {
+        targetNode = node;
+        console.log("找到目標節點:", targetNode);
+        return false;
+      }
+      return true;
+    });
+
+    if (!targetNode) {
+      console.error("找不到目標節點");
+      return null;
+    }
+
+    // 解析新的 Newick 字符串成树结构
+    const subtree = new phylotree(newNewick);
+
+    // 找到要替换的节点在父节点的子节点列表中的位置
+    const parentNode = targetNode.parent;
+    if (!parentNode) {
+      console.error("目標節點沒有父節點，無法替換");
+      return null;
+    }
+
+    const indexInParent = parentNode.children.findIndex(
+      (child) => child.unique_id === targetNode.unique_id
+    );
+
+    if (indexInParent === -1) {
+      console.error("無法在父節點的子節點列表中找到目標節點");
+      return null;
+    }
+
+    // 替換父節點的子節點列表中的目標節點
+    const subtreeRoot = subtree.nodes;
+    subtreeRoot.parent = parentNode;
+    subtreeRoot.data.attribute = targetNode.data.attribute;
+    parentNode.children[indexInParent] = subtreeRoot;
+
+    // 轉換回完整的 Newick 字串
+    const updatedNewick = convertTreeToNewick(
+      tree.nodes,
+      new Set(), // 注意：这里使用空的折叠集合，因为我们想生成完整展开的 Newick
+      new Map() // 同样使用空的重命名映射
+    );
+
+    console.log("更新後的 Newick: ", updatedNewick);
+    return updatedNewick;
+  }, []);
+
+  /**
+   * 折疊或展開節點
+   * @param {string} nodeId - 節點ID
+   * @param {boolean} isNodeCollapsed - 節點是否已折疊
+   */
+  const toggleNodeCollapse = useCallback(
+    (nodeId, isNodeCollapsed) => {
+      if (!nodeId) return;
+
+      if (isNodeCollapsed) {
+        // 展開節點 (Unmerge)
+        setCollapsedNodes((prev) => {
+          const newCollapsed = new Set(prev);
+          newCollapsed.delete(nodeId);
+          return newCollapsed;
+        });
+
+        // 如果有存储的子树信息，还原其结构
+        if (merged[nodeId] && treeInstance) {
+          const subtreeNewick = merged[nodeId].subtreeNewick;
+
+          try {
+            const updatedNewick = replaceNodeWithSubtree(
+              treeInstance,
+              nodeId,
+              subtreeNewick
+            );
+
+            if (updatedNewick) {
+              // 更新合并信息
+              setMerged((prev) => {
+                const newMerged = { ...prev };
+                delete newMerged[nodeId];
+                return newMerged;
+              });
+
+              // 更新 Newick 字符串并强制重新创建树实例
+              setNewick(updatedNewick);
+              setTree(null);
+              setTreeInstance(null);
+            }
+          } catch (error) {
+            console.error("展開節點錯誤:", error);
+          }
+        }
+      } else {
+        // 折疊節點 (Merge)
+        if (treeInstance) {
+          const node = findNodeById(treeInstance.nodes, nodeId);
+
+          if (node && node.children && node.children.length > 0) {
+            // 收集子节点信息
+            const childrenIds = new Set();
+            const collectChildrenIds = (childNode) => {
+              if (!childNode) return;
+
+              if (childNode.unique_id && childNode !== node) {
+                childrenIds.add(childNode.unique_id);
+              }
+
+              if (childNode.children) {
+                childNode.children.forEach(collectChildrenIds);
+              }
+            };
+
+            // 收集所有子节点ID
+            node.children.forEach(collectChildrenIds);
+
+            // 获取子树的 Newick 表示
+            const subtreeNewick = convertTreeToNewick(
+              node,
+              new Set(),
+              new Map()
+            );
+
+            // 获取父节点中的位置
+            let siblingIndex = -1;
+            if (node.parent) {
+              for (let i = 0; i < node.parent.children.length; i++) {
+                if (node.parent.children[i].unique_id === node.unique_id) {
+                  siblingIndex = i;
+                  break;
+                }
+              }
+            }
+
+            // 保存折叠信息
+            setMerged((prev) => ({
+              ...prev,
+              [nodeId]: {
+                children: childrenIds,
+                subtreeNewick,
+                parent: node.parent ? node.parent.unique_id : null,
+                siblingIndex,
+              },
+            }));
+          }
+        }
+
+        // 标记节点为已折叠
+        setCollapsedNodes((prev) => {
+          const newCollapsed = new Set(prev);
+          newCollapsed.add(nodeId);
+          return newCollapsed;
+        });
+      }
+    },
+    [treeInstance, merged, findNodeById, replaceNodeWithSubtree]
+  );
 
   /**
    * 重命名節點
+   * @param {string} nodeId - 節點ID
+   * @param {string} newName - 新名稱
    */
   const handleNodeRename = useCallback(
     (nodeId, newName) => {
       console.log(`重命名節點 ${nodeId} 為 ${newName}`);
 
-      // 檢查節點是否已折疊且尚未存入merged
+      // 檢查節點是否已折疊
       const isCollapsed = collapsedNodes.has(nodeId);
-      const isInMerged = merged.hasOwnProperty(nodeId);
 
       // 檢查是否為空字串
       if (newName.trim() === "") {
@@ -149,16 +329,16 @@ export function useTreeData(initialNewick) {
         });
 
         // 處理折疊節點的重命名
-        if (collapsedNodes.has(nodeId)) {
+        if (isCollapsed) {
           updateTree();
         }
       } else {
-        if (isCollapsed && !isInMerged && treeInstance) {
+        if (isCollapsed && treeInstance) {
           // 找到對應的點
-          const node = findNodeById(treeInstance, nodeId);
+          const node = findNodeById(treeInstance.nodes, nodeId);
 
           if (node) {
-            const siblings = node.parent.children;
+            const siblings = node.parent ? node.parent.children : [];
 
             const childrenIds = new Set();
             const collectChildrenIds = (childNode) => {
@@ -179,24 +359,25 @@ export function useTreeData(initialNewick) {
             }
 
             let nodeIndex = -1;
-            for (let i = 0; i < siblings.length; i++) {
-              if (siblings[i].unique_id === node.unique_id) {
-                nodeIndex = i;
-                break;
+            if (siblings.length > 0) {
+              for (let i = 0; i < siblings.length; i++) {
+                if (siblings[i].unique_id === node.unique_id) {
+                  nodeIndex = i;
+                  break;
+                }
               }
             }
 
-            // 為了保證狀態更新的順序，使用函數式更新
+            // 为了保证状态更新的顺序，使用函数式更新
             setMerged((prevMerged) => {
               const newMerged = { ...prevMerged };
               newMerged[nodeId] = {
                 children: childrenIds,
                 subtreeNewick: convertTreeToNewick(node, new Set(), new Map()),
                 rename: newName,
-                parent: node.parent.unique_id,
+                parent: node.parent ? node.parent.unique_id : null,
                 siblingIndex: nodeIndex,
               };
-              console.log(newMerged);
               return newMerged;
             });
 
@@ -206,8 +387,8 @@ export function useTreeData(initialNewick) {
               return newRenamedNodes;
             });
 
-            updateTree();
-
+            // 确保tree更新后更新newick
+            setTimeout(updateTree, 0);
             return;
           }
         }
@@ -220,50 +401,114 @@ export function useTreeData(initialNewick) {
         });
       }
     },
-    [collapsedNodes, merged, treeInstance, convertTreeToNewick, updateTree]
+    [collapsedNodes, treeInstance, findNodeById, updateTree]
   );
 
   /**
    * 按閾值折疊節點
+   * @param {number} threshold - 分支長度閾值
    */
   const handleThresholdCollapse = useCallback(
     (threshold) => {
-      // group merge
-      if (!treeInstance) return;
+      if (!treeInstance) {
+        console.log("樹實例尚未準備好");
+        return;
+      }
+
+      console.log("閾值:", threshold);
 
       // 獲取所有需要折疊的節點 ID
-      setCollapsedNodes((prev) => {
-        const nodesToCollapse = new Set(prev);
+      const nodesToCollapse = new Set(collapsedNodes);
 
-        const traverseNodes = (node, hasParentCollapsed = false) => {
-          if (!node) return;
+      // 自定義遍歷函數
+      const traverseNodes = (node, hasParentCollapsed = false) => {
+        if (!node) return;
 
-          let shouldCollapseThisNode = false;
+        // 如果父節點已經被折疊，則跳過這個節點的檢查
+        let shouldCollapseThisNode = false;
 
-          if (!hasParentCollapsed) {
-            if (node.children && node.children.length > 0) {
-              if (node.data.abstract_x >= threshold) {
-                nodesToCollapse.add(node.unique_id);
-                shouldCollapseThisNode = true;
+        // 只檢查尚未被父節點折疊的節點
+        if (!hasParentCollapsed) {
+          // 非葉節點且分支長度大於等於閾值
+          if (node.children && node.children.length > 0) {
+            if (node.data.abstract_x >= threshold) {
+              console.log(
+                "折疊節點:",
+                node.unique_id,
+                "分支長度:",
+                node.data.abstract_x
+              );
+              nodesToCollapse.add(node.unique_id);
+              shouldCollapseThisNode = true;
+
+              // 添加折叠信息到 merged
+              // 收集子节点IDs
+              const childrenIds = new Set();
+              const collectChildrenIds = (childNode) => {
+                if (!childNode) return;
+
+                if (childNode.unique_id && childNode !== node) {
+                  childrenIds.add(childNode.unique_id);
+                }
+
+                if (childNode.children) {
+                  childNode.children.forEach(collectChildrenIds);
+                }
+              };
+
+              if (node.children) {
+                node.children.forEach(collectChildrenIds);
               }
+
+              // 获取子树的 Newick 表示
+              const subtreeNewick = convertTreeToNewick(
+                node,
+                new Set(),
+                new Map()
+              );
+
+              // 获取在父节点中的位置
+              let siblingIndex = -1;
+              if (node.parent) {
+                for (let i = 0; i < node.parent.children.length; i++) {
+                  if (node.parent.children[i].unique_id === node.unique_id) {
+                    siblingIndex = i;
+                    break;
+                  }
+                }
+              }
+
+              // 更新合并信息
+              setMerged((prev) => ({
+                ...prev,
+                [node.unique_id]: {
+                  children: childrenIds,
+                  subtreeNewick,
+                  parent: node.parent ? node.parent.unique_id : null,
+                  siblingIndex,
+                },
+              }));
             }
           }
-
-          if (node.children) {
-            node.children.forEach((child) =>
-              traverseNodes(child, hasParentCollapsed || shouldCollapseThisNode)
-            );
-          }
-        };
-
-        if (treeInstance.nodes) {
-          traverseNodes(treeInstance.nodes);
         }
 
-        return nodesToCollapse;
-      });
+        // 遍歷子節點，如果當前節點被折疊，則傳遞 true 給子節點
+        if (node.children) {
+          node.children.forEach((child) =>
+            traverseNodes(child, hasParentCollapsed || shouldCollapseThisNode)
+          );
+        }
+      };
+
+      // 從根節點開始遍歷
+      if (treeInstance.nodes) {
+        traverseNodes(treeInstance.nodes);
+      }
+
+      // 更新折疊節點集合
+      setCollapsedNodes(nodesToCollapse);
     },
-    [treeInstance]
+    [treeInstance, collapsedNodes]
   );
 
   /**
@@ -300,5 +545,7 @@ export function useTreeData(initialNewick) {
     updateTree,
     setWidth,
     setHeight,
+    replaceNodeWithSubtree, // 导出这个方法以便其他组件可以使用
+    findNodeById, // 导出这个辅助方法
   };
 }

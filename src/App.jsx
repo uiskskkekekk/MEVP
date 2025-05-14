@@ -4,8 +4,8 @@ import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 
 import FloatingChatManager from "./Chat/FloatingChatManager";
 import HaplotypeNetworkApp from "./HaplotypeNetwork/HaplotypeNetworkApp";
-import PhylotreeApplication from "./Phylotree/components/PhylotreeApplication";
-// import PhylotreeApp from "./PhylotreeRestructure/PhylotreeApp";
+// import PhylotreeApplication from "./Phylotree/components/PhylotreeApplication";
+import PhylotreeApp from "./PhylotreeRestructure/PhylotreeApp";
 import SequencealignmentAPP from "./Sequence alignment/SequencealignmentAPP";
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -124,7 +124,7 @@ function App() {
               path="/"
               element={
                 <div style={{ maxWidth: 1140, margin: "0 auto" }}>
-                  <PhylotreeApplication initialNewick={phylotreeContent} />
+                  <PhylotreeApp initialNewick={phylotreeContent} />
                 </div>
               }
             />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { DEFAULT_PADDING } from "./constants/treeConstants";
 import { useExportFunctions } from "./hooks/useExportFunctions";
 import { useTreeData } from "./hooks/useTreeData";
@@ -152,6 +152,10 @@ function PhylotreeApp({ initialNewick, padding = DEFAULT_PADDING }) {
                 onExportImage={exportTreeAsImage}
               />
             </div>
+          </div>
+          <div className="search-container">
+            <input name="sequenceName" placeholder="Species Name"/>
+            <button>Search</button>
           </div>
         </div>
       </div>
