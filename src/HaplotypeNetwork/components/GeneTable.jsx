@@ -35,6 +35,18 @@ const GeneTable = ({
           console.log(`[自動偵測] 基因 "${gene.name}" 中含有地名 "${loc}"，已新增 count = 1`);
         }
       });
+
+
+      // 新增：針對河流關鍵詞對  加 1
+    const riverKeywords = ["基隆河", "淡水河", "新店溪", "景美溪"];
+    if (
+      riverKeywords.some((keyword) => gene.name.includes(keyword)) &&
+      !newCounts["Taipei"]
+    ) {
+      newCounts["Taipei"] = 1;
+      modified = true;
+      console.log(`[自動偵測] 基因 "${gene.name}" 中含有台北河流名稱，已新增 Taipei count = 1`);
+    }
   
       return modified ? { ...gene, counts: newCounts } : gene;
     });
