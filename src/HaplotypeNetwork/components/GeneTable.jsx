@@ -9,22 +9,27 @@ const GeneTable = ({
   setCityGeneData,
   onEditGeneCount,
   setCurrentPage,
-  onEditGeneCountBulk
+  onEditGeneCountBulk,
+  selectedGenes: externalSelectedGenes = [], // 從地圖來的選擇（預設空陣列）
+  onSelectedGenesChange, // 父元件傳入的改變選擇的回調
 }) => {
-  const [searchTerm, setSearchTerm] = useState(""); // 用於搜尋基因名稱
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
 
-  // 預設的城市列表
   const locations = [
     "Taipei", "New Taipei", "Keelung", "Taoyuan", "Hsinchu", "Miaoli", "Taichung",
     "Changhua", "Nantou", "Yunlin", "Chiayi", "Tainan", "Kaohsiung", "Pingtung",
     "Hualien", "Taitung", "Yilan",
   ];
 
+  // 把外部傳入的 selectedGenes 陣列轉成 Set，加速查詢
+  const selectedGenesSet = useMemo(() => new Set(externalSelectedGenes), [externalSelectedGenes]);
+
   useEffect(() => {
     const updatedGenes = genes.map((gene) => {
       const newCounts = { ...gene.counts };
       let modified = false;
-  
+
       locations.forEach((loc) => {
         if (
           gene.name.toLowerCase().includes(loc.toLowerCase()) &&
@@ -36,47 +41,27 @@ const GeneTable = ({
         }
       });
 
+      const riverKeywords = ["基隆河", "淡水河", "新店溪", "景美溪"];
+      if (
+        riverKeywords.some((keyword) => gene.name.includes(keyword)) &&
+        !newCounts["Taipei"]
+      ) {
+        newCounts["Taipei"] = 1;
+        modified = true;
+        console.log(`[自動偵測] 基因 "${gene.name}" 中含有台北河流名稱，已新增 Taipei count = 1`);
+      }
 
-      // 新增：針對河流關鍵詞對  加 1
-    const riverKeywords = ["基隆河", "淡水河", "新店溪", "景美溪"];
-    if (
-      riverKeywords.some((keyword) => gene.name.includes(keyword)) &&
-      !newCounts["Taipei"]
-    ) {
-      newCounts["Taipei"] = 1;
-      modified = true;
-      console.log(`[自動偵測] 基因 "${gene.name}" 中含有台北河流名稱，已新增 Taipei count = 1`);
-    }
-  
       return modified ? { ...gene, counts: newCounts } : gene;
     });
-  
-    const hasChanges = updatedGenes.some((gene, idx) =>
-      gene !== genes[idx]
-    );
-  
+
+    const hasChanges = updatedGenes.some((gene, idx) => gene !== genes[idx]);
+
     if (hasChanges) {
       console.log(`[自動偵測] 共更新 ${updatedGenes.filter((g, i) => g !== genes[i]).length} 筆基因資料`);
       onEditGeneCountBulk(updatedGenes);
     }
   }, [genes]);
-  
 
-  // 過濾基因資料，依照搜尋條件
-  const filteredGenes = useMemo(() => {
-    return genes.filter((gene) =>
-      gene.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [genes, searchTerm]);
-
-  // 分頁處理過濾後的基因資料
-  const paginatedGenes = useMemo(() => {
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    const endIdx = startIdx + itemsPerPage;
-    return filteredGenes.slice(startIdx, endIdx);
-  }, [filteredGenes, currentPage, itemsPerPage]);
-
-  // 更新城市基因數據，並傳遞給父組件
   useEffect(() => {
     const cityMap = {};
     locations.forEach((loc) => {
@@ -96,26 +81,22 @@ const GeneTable = ({
       });
     });
 
-    // 傳遞更新後的城市基因數據
     setCityGeneData(cityMap);
   }, [genes, geneColors, setCityGeneData]);
 
-  // 處理單個基因數據的修改
   const handleEditGeneCount = (geneName, location, newValue) => {
-    const updatedCount = Math.max(0, Number(newValue) || 0); // 保證 count 不小於 0
+    const updatedCount = Math.max(0, Number(newValue) || 0);
     onEditGeneCount(geneName, location, updatedCount);
-    setTimeout(() => updateMapData([location]), 0); // 延遲更新地圖數據
+    setTimeout(() => updateMapData([location]), 0);
   };
 
-  // 處理搜尋框的變更
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     if (setCurrentPage) {
-      setCurrentPage(1); // 搜尋時，重置到第 1 頁
+      setCurrentPage(1);
     }
   };
 
-  // 處理檔案上傳
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -123,9 +104,8 @@ const GeneTable = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const lines = event.target.result.split("\n");
-      const updates = {}; // { geneName: { city: count, ... } }
+      const updates = {};
 
-      // 解析檔案並建立更新資料
       lines.forEach((line) => {
         const [geneName, city, countStr] = line.trim().split(",");
         const count = parseInt(countStr, 10);
@@ -135,7 +115,6 @@ const GeneTable = ({
         updates[geneName][city] = count;
       });
 
-      // 更新基因資料
       const updatedGenes = genes.map((gene) => {
         if (updates[gene.name]) {
           return {
@@ -149,19 +128,54 @@ const GeneTable = ({
         return gene;
       });
 
-      // 批量更新基因數據
       onEditGeneCountBulk(updatedGenes);
-      updateMapData(locations); // 更新地圖數據
+      updateMapData(locations);
     };
 
-    reader.readAsText(file); // 讀取檔案
+    reader.readAsText(file);
+  };
+
+  // 篩選基因（搜尋字串）
+  const filteredGenes = useMemo(() => {
+    return genes.filter((gene) =>
+      gene.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [genes, searchTerm]);
+
+  // 分頁
+  const paginatedGenes = useMemo(() => {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    return filteredGenes.slice(startIdx, endIdx);
+  }, [filteredGenes, currentPage, itemsPerPage]);
+
+  // 只顯示已選擇基因時過濾
+  const displayedGenes = useMemo(() => {
+    if (showOnlySelected) {
+      return paginatedGenes.filter((gene) => selectedGenesSet.has(gene.name));
+    }
+    return paginatedGenes;
+  }, [paginatedGenes, selectedGenesSet, showOnlySelected]);
+
+  // checkbox 點選切換事件
+  const toggleGeneSelection = (geneName) => {
+    let newSelectedGenes;
+    if (selectedGenesSet.has(geneName)) {
+      // 取消選擇
+      newSelectedGenes = externalSelectedGenes.filter((name) => name !== geneName);
+    } else {
+      // 新增選擇
+      newSelectedGenes = [...externalSelectedGenes, geneName];
+    }
+    if (onSelectedGenesChange) {
+      onSelectedGenesChange(newSelectedGenes);
+    }
   };
 
   return (
     <div style={{ overflowX: "auto" }}>
       <h2>基因數據表</h2>
 
-      {/* 搜尋框和文件上傳功能 */}
       <div style={{ marginBottom: "10px" }}>
         <input
           type="text"
@@ -171,33 +185,42 @@ const GeneTable = ({
           style={{ padding: "5px", width: "200px", marginRight: "10px" }}
         />
         <input type="file" accept=".txt" onChange={handleFileUpload} />
+
+        <div style={{ marginTop: "10px" }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={showOnlySelected}
+              onChange={() => setShowOnlySelected(!showOnlySelected)}
+              style={{ marginRight: "5px" }}
+            />
+            只顯示已勾選的基因
+          </label>
+        </div>
       </div>
 
-      {/* 顯示基因數據的表格 */}
       <table border="1" style={{ tableLayout: "auto", width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={{ minWidth: "180px", textAlign: "left", whiteSpace: "normal" }}>基因</th>
+            <th style={{ width: "50px" }}></th>
+            <th style={{ minWidth: "180px", textAlign: "left" }}>基因</th>
             {locations.map((loc) => (
-              <th key={loc} style={{ width: "80px", textAlign: "center" }}>
-                {loc}
-              </th>
+              <th key={loc} style={{ width: "80px", textAlign: "center" }}>{loc}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {paginatedGenes.length > 0 ? (
-            paginatedGenes.map((gene) => (
+          {displayedGenes.length > 0 ? (
+            displayedGenes.map((gene) => (
               <tr key={gene.name}>
-                {/* 基因名稱欄位 */}
-                <td
-                  style={{
-                    minWidth: "180px",
-                    textAlign: "left",
-                    whiteSpace: "normal",
-                    wordWrap: "break-word",
-                  }}
-                >
+                <td style={{ textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedGenesSet.has(gene.name)}
+                    onChange={() => toggleGeneSelection(gene.name)}
+                  />
+                </td>
+                <td style={{ minWidth: "180px", textAlign: "left" }}>
                   <span
                     style={{
                       display: "inline-block",
@@ -209,8 +232,6 @@ const GeneTable = ({
                   ></span>
                   {gene.name}
                 </td>
-
-                {/* 各城市基因數量欄位 */}
                 {locations.map((loc) => (
                   <td key={`${gene.name}-${loc}`} style={{ width: "80px", textAlign: "center" }}>
                     <input
@@ -226,7 +247,7 @@ const GeneTable = ({
             ))
           ) : (
             <tr>
-              <td colSpan={locations.length + 1} style={{ textAlign: "center" }}>
+              <td colSpan={locations.length + 2} style={{ textAlign: "center" }}>
                 無基因數據
               </td>
             </tr>
