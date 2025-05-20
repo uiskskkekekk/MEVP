@@ -9,8 +9,8 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
     transform: d3.zoomIdentity,
   });
   const [data, setData] = useState(null);
+  const [cityColors, setCityColors] = useState({});
 
-  /* 取得後端資料 ------------------------------------------------------- */
   useEffect(() => {
     fetch("http://localhost:3000/haplotypes")
       .then((res) => res.json())
@@ -18,7 +18,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .catch(() => setData({ error: true }));
   }, []);
 
-  /* D3 繪圖 ------------------------------------------------------------ */
   useEffect(() => {
     if (!data?.nodes || !data?.edges) return;
 
@@ -33,12 +32,22 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
     const g = svg.append("g").attr("class", "zoom-group");
     zoomRef.current.group = g;
 
-    /* 色彩與大小比例尺 */
-    const color = d3.scaleSequential(d3.interpolateRainbow).domain([0, validNodes.length]);
+    const allCities = new Set();
+    validNodes.forEach((node) => {
+      if (node.cities) Object.keys(node.cities).forEach((c) => allCities.add(c));
+    });
+    const cityList = Array.from(allCities);
+    const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(cityList);
+
+    const cityColorMap = {};
+    cityList.forEach((city) => {
+      cityColorMap[city] = colorScale(city);
+    });
+    setCityColors(cityColorMap);
+
     const maxCount = d3.max(validNodes, (d) => d.count);
     const r = d3.scaleSqrt().domain([1, maxCount || 1]).range([10, 30]);
 
-    /* 力導向佈局 */
     const sim = d3
       .forceSimulation(data.nodes)
       .force("link", d3.forceLink(data.edges).id((d) => d.id).distance(30))
@@ -46,7 +55,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide().radius((d) => r(d.count) + 5));
 
-    /* 畫線 */
+    // Draw links
     g.append("g")
       .attr("stroke", "#aaa")
       .attr("stroke-width", 1.5)
@@ -54,7 +63,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .data(data.edges)
       .join("line");
 
-    /* 畫節點 */
+    // Draw nodes
     const node = g
       .append("g")
       .selectAll("g")
@@ -78,12 +87,41 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           })
       );
 
-    node
-      .append("circle")
-      .attr("r", (d) => r(d.count))
-      .attr("fill", (d, i) => color(i))
-      .on("click", (event) => event.stopPropagation()); // 阻止冒泡
+    // 用 pie chart 畫每個 node
+    const pie = d3.pie().value(([_, value]) => value);
+    const arc = d3.arc();
 
+    node.each(function (d) {
+      const group = d3.select(this);
+      const radius = r(d.count);
+
+      const entries = d.cities ? Object.entries(d.cities) : [];
+
+      if (!entries.length) {
+        group
+          .append("circle")
+          .attr("r", radius)
+          .attr("fill", "#ccc")
+          .attr("stroke", "#000");
+        return;
+      }
+
+      const arcs = pie(entries);
+
+      group
+        .selectAll("path")
+        .data(arcs)
+        .join("path")
+        .attr("d", arc.innerRadius(0).outerRadius(radius))
+        .attr("fill", (arcData) => {
+          const city = arcData.data[0];
+          return cityColorMap[city] || "#999";
+        })
+        .attr("stroke", "#000")
+        .attr("stroke-width", 0.5);
+    });
+
+    // tooltip
     node
       .append("title")
       .text((d) =>
@@ -94,6 +132,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         ].join("\n")
       );
 
+    // 標籤文字
     node
       .append("text")
       .text((d) => d.id)
@@ -114,22 +153,20 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
     });
 
-    /* 建立 zoom 行為（禁用滑鼠與觸控互動） */
     const zoomBehavior = d3
       .zoom()
-      .filter(() => false) // → 完全關閉使用者互動
+      .filter(() => false)
       .scaleExtent([0.1, 10])
       .on("zoom", (event) => {
         zoomRef.current.group.attr("transform", event.transform);
         zoomRef.current.transform = event.transform;
       });
 
-    svg.call(zoomBehavior);            // 綁定，但由於 filter false -> 使用者無法觸發
+    svg.call(zoomBehavior);
     zoomRef.current.zoomBehavior = zoomBehavior;
     zoomRef.current.transform = d3.zoomIdentity;
   }, [data, width, height]);
 
-  /* 按鈕控制縮放 -------------------------------------------------------- */
   const handleZoom = (dir) => {
     const { zoomBehavior, transform } = zoomRef.current;
     if (!zoomBehavior) return;
@@ -141,26 +178,48 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
     zoomRef.current.transform = next;
   };
 
-  /* UI ------------------------------------------------------------------ */
   return (
-    <div>
-      <h2>Haplotype Network</h2>
+    <div style={{ display: "flex", gap: 20 }}>
+      <div>
+        <h2>Haplotype Network</h2>
+        {!data && <p>Loading...</p>}
+        {data?.error && <p style={{ color: "red" }}>無法載入資料</p>}
 
-      {!data && <p>Loading...</p>}
-      {data?.error && <p style={{ color: "red" }}>無法載入資料</p>}
+        <div style={{ margin: "10px 0" }}>
+          <button onClick={() => handleZoom("in")}>🔍 放大</button>{" "}
+          <button onClick={() => handleZoom("out")}>🔎 縮小</button>
+        </div>
 
-      <div style={{ margin: "10px 0" }}>
-        <button onClick={() => handleZoom("in")}>🔍 放大</button>{" "}
-        <button onClick={() => handleZoom("out")}>🔎 縮小</button>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${width} ${height}`}
+          width={width}
+          height={height}
+          style={{ border: "1px solid #ccc" }}
+        />
       </div>
 
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${width} ${height}`}
-        width={width}
-        height={height}
-        style={{ border: "1px solid #ccc" }}
-      />
+      {Object.keys(cityColors).length > 0 && (
+        <div style={{ padding: 10, border: "1px solid #ccc", height: "fit-content" }}>
+          <h3>城市圖例</h3>
+          <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+            {Object.entries(cityColors).map(([city, color]) => (
+              <li key={city} style={{ marginBottom: 4, display: "flex", alignItems: "center" }}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: color,
+                    marginRight: 8,
+                    border: "1px solid #000",
+                  }}
+                />
+                {city}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {data && !data.error && (
         <pre
@@ -174,7 +233,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
-
     </div>
   );
 };
