@@ -58,12 +58,9 @@ h1 {
 }
 
 .sequence-string {
-  overflow-x: auto; /* 允許橫向滾動 */
-  max-width: 100%; /* 限制最大寬度 */
-  padding: 5px; /* 內邊距 */
-  border: 1px solid #ddd; /* 邊框 */
-  border-radius: 5px; /* 圓角 */
-}
+    max-width: 100%; /* 限制最大寬度 */
+    padding: 5px; /* 內邊距 */
+  }
 
 .color-a {
   color: blue; /* A 和 a 的顏色 */

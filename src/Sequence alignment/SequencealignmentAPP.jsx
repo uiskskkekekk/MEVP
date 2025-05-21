@@ -87,11 +87,32 @@ function SequencealignmentAPP({ haplotypeContent }) {
 
   return (
     <div>
+      <div className="result" style={{ overflowX: 'auto', whiteSpace: 'nowrap', padding: '10px', border: 'none', background: 'none' }}>
+        {paginatedSequences.map((seq, index) => (
+          <div key={index} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <strong style={{ flex: '0 0 auto', marginRight: '100px' }}>{seq.id}</strong>
+          </div>
+        ))}
+      </div>
 
-      <div className="result" dangerouslySetInnerHTML={{ __html: paginatedResult.join('') }} />
+      <div className="result" style={{ overflowX: 'auto', whiteSpace: 'nowrap', padding: '10px', border: 'none', background: 'none' }}>
+        <table>
+          <tbody>
+            {paginatedSequences.map((seq, index) => (
+              <tr key={index} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <td className="sequence-string" style={{ flex: 1 }}>
+                  <span dangerouslySetInnerHTML={{ __html: colorSequence(seq.sequence) }} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+
       <div className="pagination">
         <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 0}>上一頁</button>
-        <button className="pagination-button" onClick={handleNextPage} disabled={(currentPage + 1) * itemsPerPage >= result.length}>下一頁</button>
+        <button className="pagination-button" onClick={handleNextPage} disabled={(currentPage + 1) * itemsPerPage >= sequences.length}>下一頁</button>
       </div>
     </div>
   );
