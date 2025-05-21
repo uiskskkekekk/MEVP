@@ -37,30 +37,34 @@ function SequencealignmentAPP({ haplotypeContent }) {
       }
     }
 
+    
 
     return sequences;
   };
 
   const colorSequence = (sequence) => {
     return sequence.split('').map((char, index) => {
-      let colorClass = '';
+      let bgClass = ''; // 將 colorClass 改名為 bgClass
       switch (char.toLowerCase()) {
         case 'a':
-          colorClass = 'color-a';
+          bgClass = 'bg-a'; // 使用背景色類別
           break;
         case 't':
-          colorClass = 'color-t';
+          bgClass = 'bg-t';
           break;
         case 'c':
-          colorClass = 'color-c';
+          bgClass = 'bg-c';
           break;
         case 'g':
-          colorClass = 'color-g';
+          bgClass = 'bg-g';
+          break;
+        case '-':
+          bgClass = 'bg-large'; // 對 '-' 使用背景色類別
           break;
         default:
-          colorClass = 'color-other';
+          bgClass = 'bg-other';
       }
-      return `<span class="${colorClass}" key="${index}">${char}</span>`;
+      return `<span class="${bgClass}" key="${index}">${char}</span>`;
     }).join('');
   };
 
