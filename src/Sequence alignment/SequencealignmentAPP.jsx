@@ -1,28 +1,20 @@
+
 import React, { useEffect, useState } from 'react';
 import './SequencealignmentAPP.css'; // 引入 CSS 文件
 
 function SequencealignmentAPP({ haplotypeContent }) {
-  const [result, setResult] = useState([]);
+  const [sequences, setSequences] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 10; // 每頁顯示的基因數量
 
   useEffect(() => {
     if (haplotypeContent) {
-      const sequences = parseFasta(haplotypeContent);
-      if (sequences.length === 0) {
-        setResult(["文件中沒有任何字串"]);
+      const parsedSequences = parseFasta(haplotypeContent);
+      if (parsedSequences.length === 0) {
+        setSequences(["文件中沒有任何字串"]);
         return;
       }
-
-      const output = sequences.map(seq => 
-        `<div class="sequence-line" style="display: flex; align-items: center; margin-bottom: 10px;">
-           <strong style="flex: 0 0 auto;">${seq.id}</strong>
-           <div class="sequence-string" style="overflow-x: auto; white-space: nowrap; flex: 1 1 auto;">
-             ${colorSequence(seq.sequence)}
-           </div>
-         </div>`
-      );
-      setResult(output);
+      setSequences(parsedSequences);
     }
   }, [haplotypeContent]);
 
@@ -45,9 +37,6 @@ function SequencealignmentAPP({ haplotypeContent }) {
       }
     }
 
-    if (currentId) {
-      sequences.push({ id: currentId, sequence: currentSeq });
-    }
 
     return sequences;
   };
@@ -83,7 +72,8 @@ function SequencealignmentAPP({ haplotypeContent }) {
     setCurrentPage((prevPage) => Math.max(prevPage - 1, 0));
   };
 
-  const paginatedResult = result.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  // 計算當前分頁要顯示的字串
+  const paginatedSequences = sequences.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   return (
     <div>

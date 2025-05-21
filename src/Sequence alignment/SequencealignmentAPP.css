@@ -1,123 +1,118 @@
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+  .logo {
+    height: 6em;
+    padding: 1.5em;
+    will-change: filter;
+    transition: filter 300ms;
+  }
+  .logo:hover {
+    filter: drop-shadow(0 0 2em #646cffaa);
+  }
+  .logo.react:hover {
+    filter: drop-shadow(0 0 2em #61dafbaa);
+  }
   
   
 body {
-  font-size: 16px; /* 基本字體大小 */
-  margin: 0;
-  padding: 0;
-}
-
-@media (max-width: 600px) {
-  body {
-    font-size: 14px; /* 較小設備的字體大小 */
+    font-size: 16px; /* 基本字體大小 */
+    margin: 0;
+    padding: 0;
   }
-}
-
-@media (min-width: 601px) and (max-width: 1200px) {
-  body {
-    font-size: 16px; /* 中等設備的字體大小 */
+  
+  @media (max-width: 600px) {
+    body {
+      font-size: 14px; /* 較小設備的字體大小 */
+    }
   }
-}
-
-@media (min-width: 1201px) {
-  body {
-    font-size: 18px; /* 較大設備的字體大小 */
+  
+  @media (min-width: 601px) and (max-width: 1200px) {
+    body {
+      font-size: 16px; /* 中等設備的字體大小 */
+    }
   }
-}
-
-
-h1 {
-  font-size: 4vw; /* 根據視窗寬度調整字體大小 */
-}
-.card {
-  padding: 2em;
-}
-.result {
-  text-align: left; /* 將結果內容設置為左對齊 */
-  border-radius: 8px; /* 圓角 */
-  padding: 20px; /* 內邊距 */
-}
-
-.sequence-line {
-  font-weight: bold; /* 標題加粗 */
-  margin-bottom: 5px; /* 標題與字串之間的間距 */
-  cursor: pointer; /* 鼠標懸停時顯示為可點擊 */
-  color: #007bff; /* 藍色標題 */
-  font-size: 20px; /* 根據視窗寬度調整字體大小 */
-}
-
-.sequence-string {
+  
+  @media (min-width: 1201px) {
+    body {
+      font-size: 18px; /* 較大設備的字體大小 */
+    }
+  }
+  
+  
+  
+  .card {
+    padding: 2em;
+  }
+  .result {
+    text-align: left; /* 將結果內容設置為左對齊 */
+    border-radius: 8px; /* 圓角 */
+    padding: 20px; /* 內邊距 */
+  }
+  
+  .sequence-line {
+    font-weight: bold; /* 標題加粗 */
+    margin-bottom: 500px; /* 標題與字串之間的間距 */
+    cursor: pointer; /* 鼠標懸停時顯示為可點擊 */
+    color: #007bff; /* 藍色標題 */
+    font-size: 20px; /* 根據視窗寬度調整字體大小 */
+  }
+  
+  .sequence-string {
     max-width: 100%; /* 限制最大寬度 */
     padding: 5px; /* 內邊距 */
   }
-
-.color-a {
-  color: blue; /* A 和 a 的顏色 */
+  
+  .color-a {
+    color: blue; /* A 和 a 的顏色 */
+  }
+  
+  .color-t {
+    color: orange; /* T 和 t 的顏色 */
+  }
+  
+  .color-c {
+    color: green; /* C 和 c 的顏色 */
+  }
+  
+  .color-g {
+    color: purple; /* G 和 g 的顏色 */
+  }
+  
+  .color-other {
+    color: black; /* 其他字母的顏色 */
+  }
+  
+  
+  
+  .pagination {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  
+  .pagination-button {
+    background-color: #4CAF50; /* 綠色背景 */
+    border: none; /* 無邊框 */
+    color: white; /* 白色字體 */
+    padding: 10px 20px; /* 內邊距 */
+    text-align: center; /* 文字置中 */
+    text-decoration: none; /* 無下劃線 */
+    display: inline-block; /* 內聯塊元素 */
+    font-size: 16px; /* 字體大小 */
+    margin: 0 5px; /* 按鈕之間的間距 */
+    cursor: pointer; /* 鼠標指針 */
+    border-radius: 5px; /* 圓角 */
+    transition: background-color 0.3s; /* 背景顏色過渡效果 */
+  }
+  
+  .pagination-button:hover {
+    background-color: #45a049; /* 懸停時變色 */
+  }
+  
+  .pagination-button:disabled {
+    background-color: #ccc; /* 禁用時的顏色 */
+    cursor: not-allowed; /* 禁用狀態的指針 */
+  }
+  .table-container {
+  width: 100%;
+  border: 1px solid #ddd;
 }
 
-.color-t {
-  color: orange; /* T 和 t 的顏色 */
-}
-
-.color-c {
-  color: green; /* C 和 c 的顏色 */
-}
-
-.color-g {
-  color: purple; /* G 和 g 的顏色 */
-}
-
-.color-other {
-  color: black; /* 其他字母的顏色 */
-}
-
-/* 新增輸入框的樣式 */
-input[type="text"] {
-  margin-top: 10px; /* 輸入框與其他元素的間距 */
-  padding: 5px;
-  width: 300px; /* 輸入框寬度 */
-}
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-}
-
-.pagination-button {
-  background-color: #4CAF50; /* 綠色背景 */
-  border: none; /* 無邊框 */
-  color: white; /* 白色字體 */
-  padding: 10px 20px; /* 內邊距 */
-  text-align: center; /* 文字置中 */
-  text-decoration: none; /* 無下劃線 */
-  display: inline-block; /* 內聯塊元素 */
-  font-size: 16px; /* 字體大小 */
-  margin: 0 5px; /* 按鈕之間的間距 */
-  cursor: pointer; /* 鼠標指針 */
-  border-radius: 5px; /* 圓角 */
-  transition: background-color 0.3s; /* 背景顏色過渡效果 */
-}
-
-.pagination-button:hover {
-  background-color: #45a049; /* 懸停時變色 */
-}
-
-.pagination-button:disabled {
-  background-color: #ccc; /* 禁用時的顏色 */
-  cursor: not-allowed; /* 禁用狀態的指針 */
-}
-.table-container {
-width: 100%;
-border: 1px solid #ddd;
-}
