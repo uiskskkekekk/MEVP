@@ -12,10 +12,8 @@
   }
   
   
-body {
-    font-size: 16px; /* 基本字體大小 */
-    margin: 0;
-    padding: 0;
+  body {
+    font-family: 'Courier New', Courier, monospace; /* 設定全局字體 */
   }
   
   @media (max-width: 600px) {
@@ -58,27 +56,33 @@ body {
   .sequence-string {
     max-width: 100%; /* 限制最大寬度 */
     padding: 5px; /* 內邊距 */
+    font-family: 'Courier New', Courier, monospace; /* 對序列字符串的樣式 */
   }
   
-  .color-a {
-    color: blue; /* A 和 a 的顏色 */
+  .bg-a {
+  background-color: lightgreen; /* A 的背景色 */
   }
-  
-  .color-t {
-    color: orange; /* T 和 t 的顏色 */
+
+  .bg-t {
+    background-color: lightcoral; /* T 的背景色 */
   }
-  
-  .color-c {
-    color: green; /* C 和 c 的顏色 */
+
+  .bg-c {
+    background-color: lightblue; /* C 的背景色 */
   }
-  
-  .color-g {
-    color: purple; /* G 和 g 的顏色 */
+
+  .bg-g {
+    background-color: lightyellow; /* G 的背景色 */
   }
-  
-  .color-other {
-    color: black; /* 其他字母的顏色 */
+
+  .bg-large {
+    background-color: lightgray; /* '-' 的背景色 */
   }
+
+  .bg-other {
+    background-color: lightgray; /* 其他字符的背景色 */
+  }
+
   
   
   
@@ -114,5 +118,9 @@ body {
   .table-container {
   width: 100%;
   border: 1px solid #ddd;
-}
+  }
+  .color-bg-large {
+  font-size: 2em; /* 調整字體大小 */
+  color: inherit;   /* 繼承父元素顏色 */
+  }
 
