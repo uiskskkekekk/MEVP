@@ -57,6 +57,8 @@ const FilteredTaiwanMapComponent = ({
   geneColors,
   selectedGene,
   activeSimilarityGroup,
+
+  onSelectedGenesChange, // ← 新增這行
 }) => {
   const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });         // 經緯度顯示
   const [searchTerm, setSearchTerm] = useState("");                 // 搜尋欄文字
@@ -74,6 +76,13 @@ const FilteredTaiwanMapComponent = ({
     ]);
     setSelectedGenes(Array.from(allowed).filter(Boolean));
   }, [selectedGene, activeSimilarityGroup]);
+
+  useEffect(() => {
+  if (onSelectedGenesChange) {
+    onSelectedGenesChange(selectedGenes);
+  }
+}, [selectedGenes, onSelectedGenesChange]);
+
 
   // --- 基因過濾 + 搜尋邏輯 ---
   const filteredGeneList = useMemo(() => {

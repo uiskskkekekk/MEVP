@@ -234,6 +234,7 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
             geneColors={geneColors}
             selectedGene={selectedGene}
             activeSimilarityGroup={activeSimilarityGroup}
+            onSelectedGenesChange={(selected) => setSelectedGenes(selected)}
           />
           <GeneSelector
             genes={genes}
