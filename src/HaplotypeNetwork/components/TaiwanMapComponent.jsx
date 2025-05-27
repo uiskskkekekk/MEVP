@@ -2,6 +2,7 @@ import React, { useMemo, memo, useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import TaiwanMapImage from "../../assets/haplotype/TW.png";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { cityCoordinates2 } from "../data/cityCoordinates2";
 
 // --------------------------------------------
 // 記憶化元件：城市圓餅圖（避免不必要重繪）
@@ -33,7 +34,6 @@ const CityPieChart = memo(
       </div>
     );
   },
-  // 自訂比較函數，確保只在必要時重繪
   (prev, next) =>
     prev.city === next.city &&
     prev.chartData.totalCount === next.chartData.totalCount &&
@@ -50,22 +50,16 @@ const TaiwanMapComponent = ({
   genes,
   cityGeneData,
   geneColors,
-  onSelectedGenesChange, // 選擇基因變更回調
+  onSelectedGenesChange,
 }) => {
-  // 搜尋字串狀態
   const [searchTerm, setSearchTerm] = useState("");
-  // 分頁索引
   const [currentPage, setCurrentPage] = useState(0);
-  // 已選基因清單
   const [selectedGenes, setSelectedGenes] = useState([]);
-
+  const [initialized, setInitialized] = useState(false);
   const genesPerPage = 100;
 
-  // 全部基因名稱陣列 (快取)
   const allGenes = useMemo(() => genes.map((g) => g.name), [genes]);
 
-  // 初始化：第一次載入時自動全選
-  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
     if (allGenes.length > 0 && !initialized) {
       setSelectedGenes(allGenes);
@@ -73,39 +67,30 @@ const TaiwanMapComponent = ({
     }
   }, [allGenes, initialized]);
 
-  // 當已選基因變更時呼叫外部回調（如有）
   useEffect(() => {
     onSelectedGenesChange?.(selectedGenes);
   }, [selectedGenes, onSelectedGenesChange]);
 
-  // 過濾基因清單（依搜尋字串）
   const filteredGeneList = useMemo(() => {
     return allGenes.filter((name) => name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allGenes, searchTerm]);
 
-  // 目前頁面顯示的基因
   const currentGenes = filteredGeneList.slice(
     currentPage * genesPerPage,
     (currentPage + 1) * genesPerPage
   );
 
-  // 總頁數計算
   const totalPages = Math.ceil(filteredGeneList.length / genesPerPage);
 
-  // 切換單一基因選擇狀態
   const toggleGene = (name) => {
     setSelectedGenes((prev) =>
       prev.includes(name) ? prev.filter((g) => g !== name) : [...prev, name]
     );
   };
 
-  // 全選過濾後的基因
   const handleSelectAll = () => setSelectedGenes(filteredGeneList);
-
-  // 清除所有選擇
   const handleClearAll = () => setSelectedGenes([]);
 
-  // 根據已選基因計算各城市的圓餅圖資料
   const filteredCityGeneData = useMemo(() => {
     const result = {};
     for (const [city, genes] of Object.entries(cityGeneData)) {
@@ -119,15 +104,12 @@ const TaiwanMapComponent = ({
     return result;
   }, [cityGeneData, selectedGenes]);
 
-  // 經緯度狀態 (滑鼠移動更新)
   const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });
 
-  // 滑鼠移動事件，根據滑鼠位置換算經緯度
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // 台灣大約經度範圍 120~122，緯度約 22~25
     const lon = 120.0 + (x / 400) * 2;
     const lat = 25.0 - (y / 600) * 3;
     setLatLon({ lat: lat.toFixed(4), lon: lon.toFixed(4) });
@@ -141,15 +123,23 @@ const TaiwanMapComponent = ({
         onMouseMove={handleMouseMove}
       >
         <img src={TaiwanMapImage} alt="Taiwan Map" width={400} height={600} />
-        {Object.entries(filteredCityGeneData).map(([city, chartData]) => (
-          <CityPieChart
-            key={city}
-            city={city}
-            chartData={chartData}
-            geneColors={geneColors}
-            position={cityCoordinates[city]}
-          />
-        ))}
+        {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
+          const outerRadius = Math.min(10 + Math.floor(chartData.totalCount / 10) * 10, 50);
+          const threshold = 20;
+          const coordinates =
+            outerRadius > threshold
+              ? cityCoordinates2[city] || cityCoordinates[city]
+              : cityCoordinates[city];
+          return (
+            <CityPieChart
+              key={city}
+              city={city}
+              chartData={chartData}
+              geneColors={geneColors}
+              position={coordinates}
+            />
+          );
+        })}
 
         {/* 經緯度顯示 */}
         <div
@@ -175,8 +165,6 @@ const TaiwanMapComponent = ({
       {/* 基因選擇區 */}
       <div style={{ display: "flex", flexDirection: "column", width: 700 }}>
         <h4>選擇顯示基因：</h4>
-
-        {/* 搜尋框 */}
         <input
           type="text"
           value={searchTerm}
@@ -184,8 +172,6 @@ const TaiwanMapComponent = ({
           placeholder="搜尋基因名稱"
           style={{ width: "95%", marginBottom: 8, padding: 4 }}
         />
-
-        {/* 全選 / 清除 / 已選計數 */}
         <div style={{ marginBottom: 8, display: "flex", gap: 5, alignItems: "center" }}>
           <button onClick={handleSelectAll}>全選</button>
           <button onClick={handleClearAll}>清除選擇</button>
@@ -193,8 +179,6 @@ const TaiwanMapComponent = ({
             已選 {selectedGenes.length} / {allGenes.length}
           </span>
         </div>
-
-        {/* 基因列表 */}
         <div
           style={{
             overflowY: "auto",
@@ -226,8 +210,6 @@ const TaiwanMapComponent = ({
             </label>
           ))}
         </div>
-
-        {/* 分頁控制 */}
         <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
           <button
             onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
