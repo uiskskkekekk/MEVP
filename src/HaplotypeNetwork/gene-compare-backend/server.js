@@ -111,20 +111,36 @@ app.post("/saveGeneCounts", (req, res) => {
     return res.status(400).json({ error: "Invalid gene data format" });
   }
 
-  // 扁平化
-  const flattened = genes.flatMap(({ name, counts }) => {
-    if (typeof counts !== "object") return [];
-    return Object.entries(counts).map(([city, count]) => ({
-      name,
-      city,
-      count,
-    }));
-  });
+  let flattened = [];
 
+  // ✅ 自動偵測格式並轉換
+  if (genes.length > 0 && genes[0].counts) {
+    // 格式為 { name, counts: { city: count } }
+    flattened = genes.flatMap(({ name, counts }) => {
+      if (typeof counts !== "object") return [];
+      return Object.entries(counts).map(([city, count]) => ({
+        name,
+        city,
+        count,
+      }));
+    });
+  } else if (genes.length > 0 && genes[0].city && genes[0].count != null) {
+    // 格式為 { name, city, count }
+    flattened = genes;
+  } else {
+    return res.status(400).json({ error: "Unrecognized gene format" });
+  }
+
+  // ✅ 如果你要合併而不是覆蓋，可考慮這段（可選）
+  // flattened = [...geneCounts, ...flattened];
+
+  // ✅ 預設行為：覆蓋儲存
   geneCounts = flattened;
-  console.log("✔ 已儲存 gene counts（轉換後）共", geneCounts.length, "筆");
+  console.log("✔ 已儲存 gene counts（格式統一後）共", geneCounts.length, "筆");
+
   res.json({ message: "Gene counts saved and normalized successfully" });
 });
+
 
 /**
  * 取得所有基因 counts（扁平化後）
@@ -164,46 +180,56 @@ function hammingDistance(seq1, seq2) {
  * nodes: 唯一序列及其相關城市與數量
  * edges: Hamming distance = 1 的序列連線
  */
-app.get("/haplotypes", (req, res) => {
-  const sequenceMap = {}; // key: sequence, value: node 資訊
+app.get("/HaplotypeNetwork", (req, res) => {
+  const nodes = [];
 
-  // 聚合 counts 到同序列
-  geneCounts.forEach(({ name, city, count }) => {
+  // 從 URL 查詢參數取得 maxDistance，預設值為 1~5 之間（可自行設定）
+  const maxDistance = parseInt(req.query.maxDistance) || 5;
+
+  // 聚合節點
+  for (const { name, city, count } of geneCounts) {
     const sequence = geneSequences[name];
-    if (!sequence) return;
+    if (!sequence) continue;
 
-    if (!sequenceMap[sequence]) {
-      sequenceMap[sequence] = {
-        id: "hap_" + (Object.keys(sequenceMap).length + 1),
+    // 尋找是否已存在該序列的 node
+    let existing = nodes.find((n) => n.id === name);
+    if (existing) {
+      existing.count += count;
+      existing.cities[city] = (existing.cities[city] || 0) + count;
+    } else {
+      nodes.push({
+        id: name,
         sequence,
-        count: 0,
-        cities: {},
-      };
+        count,
+        cities: { [city]: count },
+      });
     }
+  }
 
-    sequenceMap[sequence].count += count;
-    sequenceMap[sequence].cities[city] = (sequenceMap[sequence].cities[city] || 0) + count;
-  });
-
-  const nodes = Object.values(sequenceMap);
-
-  // 建立 edges：兩序列 Hamming distance 為 1 時連線
+  // 加入 maxDistance 過濾條件
   const edges = [];
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
-      const dist = hammingDistance(nodes[i].sequence, nodes[j].sequence);
-      if (dist === 1) {
-        edges.push({
-          source: nodes[i].id,
-          target: nodes[j].id,
-          distance: dist,
-        });
+      const seq1 = nodes[i].sequence;
+      const seq2 = nodes[j].sequence;
+      if (seq1.length === seq2.length) {
+        const dist = hammingDistance(seq1, seq2);
+        if (dist > 0 && dist <= maxDistance) {
+          edges.push({
+            source: nodes[i].id,
+            target: nodes[j].id,
+            distance: dist,
+          });
+        }
       }
     }
   }
 
   res.json({ nodes, edges });
 });
+
+
+
 
 /**
  * 啟動 Express Server

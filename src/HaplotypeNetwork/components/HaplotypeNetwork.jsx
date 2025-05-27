@@ -8,22 +8,26 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
     group: null,
     transform: d3.zoomIdentity,
   });
+
   const [data, setData] = useState(null);
   const [cityColors, setCityColors] = useState({});
+  const [maxDistance, setMaxDistance] = useState(2);
 
-  useEffect(() => {
-    fetch("http://localhost:3000/haplotypes")
+  const fetchData = (distance) => {
+    fetch(`http://localhost:3000/HaplotypeNetwork?maxDistance=${distance}`)
       .then((res) => res.json())
       .then(setData)
       .catch(() => setData({ error: true }));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchData(maxDistance);
+  }, [maxDistance]);
 
   useEffect(() => {
     if (!data?.nodes || !data?.edges) return;
 
-    const validNodes = data.nodes.filter(
-      (d) => typeof d.count === "number" && d.count > 0
-    );
+    const validNodes = data.nodes.filter((d) => typeof d.count === "number" && d.count > 0);
     if (!validNodes.length) return;
 
     const svg = d3.select(svgRef.current).attr("cursor", "grab");
@@ -55,15 +59,24 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide().radius((d) => r(d.count) + 5));
 
-    // Draw links
-    g.append("g")
-      .attr("stroke", "#aaa")
-      .attr("stroke-width", 1.5)
+    const linkGroup = g.append("g").attr("class", "links");
+
+    linkGroup
       .selectAll("line")
       .data(data.edges)
-      .join("line");
+      .join("line")
+      .attr("stroke", "#bbb")
+      .attr("stroke-width", 1.5);
 
-    // Draw nodes
+    const edgeLabels = linkGroup
+      .selectAll("text")
+      .data(data.edges)
+      .join("text")
+      .text((d) => d.distance)
+      .attr("font-size", 10)
+      .attr("fill", "#666")
+      .attr("text-anchor", "middle");
+
     const node = g
       .append("g")
       .selectAll("g")
@@ -87,7 +100,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           })
       );
 
-    // 用 pie chart 畫每個 node
     const pie = d3.pie().value(([_, value]) => value);
     const arc = d3.arc();
 
@@ -102,7 +114,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           .append("circle")
           .attr("r", radius)
           .attr("fill", "#ccc")
-          .attr("stroke", "#000");
+          .attr("stroke", "#333");
         return;
       }
 
@@ -113,15 +125,11 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         .data(arcs)
         .join("path")
         .attr("d", arc.innerRadius(0).outerRadius(radius))
-        .attr("fill", (arcData) => {
-          const city = arcData.data[0];
-          return cityColorMap[city] || "#999";
-        })
+        .attr("fill", (arcData) => cityColorMap[arcData.data[0]] || "#999")
         .attr("stroke", "#000")
         .attr("stroke-width", 0.5);
     });
 
-    // tooltip
     node
       .append("title")
       .text((d) =>
@@ -132,7 +140,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         ].join("\n")
       );
 
-    // 標籤文字
     node
       .append("text")
       .text((d) => d.id)
@@ -149,6 +156,10 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         .attr("y1", (d) => d.source.y)
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
+
+      edgeLabels
+        .attr("x", (d) => (d.source.x + d.target.x) / 2)
+        .attr("y", (d) => (d.source.y + d.target.y) / 2);
 
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
     });
@@ -179,15 +190,56 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
   };
 
   return (
-    <div style={{ display: "flex", gap: 20 }}>
+    <div style={{ display: "flex", gap: 20, fontFamily: "sans-serif" }}>
       <div>
-        <h2>Haplotype Network</h2>
+        <h2 style={{ margin: "10px 0" }}>Haplotype Network</h2>
         {!data && <p>Loading...</p>}
         {data?.error && <p style={{ color: "red" }}>無法載入資料</p>}
 
         <div style={{ margin: "10px 0" }}>
-          <button onClick={() => handleZoom("in")}>🔍 放大</button>{" "}
-          <button onClick={() => handleZoom("out")}>🔎 縮小</button>
+          <button
+            onClick={() => handleZoom("in")}
+            style={{
+              padding: "6px 12px",
+              marginRight: 10,
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+            }}
+          >
+            🔍 放大
+          </button>
+          <button
+            onClick={() => handleZoom("out")}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: "#424242",
+              color: "#fff",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+            }}
+          >
+            🔎 縮小
+          </button>
+        </div>
+
+        <div style={{ marginBottom: 10 }}>
+          <label>
+            最大距離（maxDistance）: {maxDistance}
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={maxDistance}
+              onChange={(e) => setMaxDistance(Number(e.target.value))}
+              style={{ marginLeft: 10 }}
+            />
+          </label>
         </div>
 
         <svg
@@ -195,16 +247,37 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           viewBox={`0 0 ${width} ${height}`}
           width={width}
           height={height}
-          style={{ border: "1px solid #ccc" }}
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: 10,
+            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+            backgroundColor: "#fafafa",
+          }}
         />
       </div>
 
       {Object.keys(cityColors).length > 0 && (
-        <div style={{ padding: 10, border: "1px solid #ccc", height: "fit-content" }}>
-          <h3>城市圖例</h3>
-          <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+        <div
+          style={{
+            padding: 10,
+            border: "1px solid #ccc",
+            borderRadius: 8,
+            height: "fit-content",
+            backgroundColor: "#fff",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>城市圖例</h3>
+          <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
             {Object.entries(cityColors).map(([city, color]) => (
-              <li key={city} style={{ marginBottom: 4, display: "flex", alignItems: "center" }}>
+              <li
+                key={city}
+                style={{
+                  marginBottom: 6,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
                 <div
                   style={{
                     width: 16,
@@ -233,7 +306,10 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
+
     </div>
+
+    
   );
 };
 
