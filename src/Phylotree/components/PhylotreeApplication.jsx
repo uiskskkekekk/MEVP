@@ -140,6 +140,7 @@ class PhylotreeApplication extends Component {
     this.handleContextMenuEvent = this.handleContextMenuEvent.bind(this);
     this.closeContextMenu = this.closeContextMenu.bind(this);
     this.handleCollapseSubtree = this.handleCollapseSubtree.bind(this);
+    this.handleMoveToRoot = this.handleMoveToRoot.bind(this);
     this.exportModifiedNewick = this.exportModifiedNewick.bind(this);
     this.handleNodeRename = this.handleNodeRename.bind(this);
   }
@@ -252,6 +253,188 @@ class PhylotreeApplication extends Component {
       },
     });
   }
+
+  // 處理移動到根節點的功能
+  handleMoveToRoot = () => {
+    const { nodeId } = this.state.contextMenu;
+    const { treeInstance } = this.state;
+
+    if (!nodeId || !treeInstance) {
+      console.error("无法执行移动到根节点操作：缺少必要信息");
+      return;
+    }
+
+    try {
+      // 找到要移动的节点
+      const targetNode = this.findNodeById(treeInstance.nodes, nodeId);
+      if (!targetNode) {
+        console.error("找不到目标节点");
+        return;
+      }
+
+      // 获取目标子树的 Newick 字符串
+      const subtreeNewick = this.convertTreeToNewick(
+        targetNode, 
+        new Set(), 
+        new Map()
+      );
+      console.log("要移动的子树 Newick:", subtreeNewick);
+
+      // 从原位置移除该子树后的 Newick
+      const modifiedNewick = this.removeSubtreeFromNewick(
+        this.state.newick, 
+        targetNode
+      );
+      console.log("移除子树后的 Newick:", modifiedNewick);
+
+      // 将子树移动到根节点级别
+      const newNewick = this.moveSubtreeToRoot(modifiedNewick, subtreeNewick);
+      console.log("最终的 Newick:", newNewick);
+
+      // 更新状态
+      this.setState({
+        newick: newNewick,
+        tree: null,
+        treeInstance: null,
+        // 重置相关状态
+        collapsedNodes: new Set(),
+        renamedNodes: new Map(),
+        merged: {},
+      });
+
+    } catch (error) {
+      console.error("移动到根节点时出错:", error);
+      alert("移动子树时发生错误，请检查控制台以获取详细信息");
+    }
+
+    this.closeContextMenu();
+  };
+
+  // 从 Newick 字符串中移除指定子树
+  removeSubtreeFromNewick = (originalNewick, targetNode) => {
+    const tree = new phylotree(originalNewick);
+    
+    // 简化的节点位置计算，不使用完整的 placenodes
+    let uniqueId = 0;
+    const assignIds = (node) => {
+      if (!node.children || node.children.length === 0) {
+        node.unique_id = ++uniqueId;
+      }
+      
+      if (node.children) {
+        node.children.forEach(assignIds);
+      }
+    };
+    
+    assignIds(tree.nodes);
+    
+    // 找到要移除的节点
+    let nodeToRemove = null;
+    tree.traverse_and_compute((node) => {
+      // 通过名称和分支长度来匹配节点
+      if (this.nodesMatch(node, targetNode)) {
+        nodeToRemove = node;
+        return false;
+      }
+      return true;
+    });
+
+    if (!nodeToRemove) {
+      throw new Error("在原始树中找不到要移除的节点");
+    }
+
+    // 从父节点的子节点列表中移除该节点
+    if (nodeToRemove.parent && nodeToRemove.parent.children) {
+      const siblings = nodeToRemove.parent.children;
+      const index = siblings.indexOf(nodeToRemove);
+      if (index > -1) {
+        siblings.splice(index, 1);
+      }
+
+      // 如果父节点只剩下一个子节点，需要特殊处理
+      if (siblings.length === 1) {
+        const remainingChild = siblings[0];
+        const grandParent = nodeToRemove.parent.parent;
+        
+        if (grandParent) {
+          // 将剩余的子节点提升到祖父节点的子节点位置
+          const parentIndex = grandParent.children.indexOf(nodeToRemove.parent);
+          if (parentIndex > -1) {
+            // 合并分支长度
+            if (remainingChild.data.attribute && nodeToRemove.parent.data.attribute) {
+              remainingChild.data.attribute = 
+                (parseFloat(remainingChild.data.attribute) + 
+                parseFloat(nodeToRemove.parent.data.attribute)).toString();
+            }
+            
+            remainingChild.parent = grandParent;
+            grandParent.children[parentIndex] = remainingChild;
+          }
+        } else {
+          // 如果父节点是根节点，剩余子节点成为新的根节点
+          tree.nodes = remainingChild;
+          remainingChild.parent = null;
+        }
+      } else if (siblings.length === 0) {
+        // 如果移除后没有兄弟节点，需要移除父节点
+        const parent = nodeToRemove.parent;
+        if (parent.parent) {
+          const grandParent = parent.parent;
+          const parentIndex = grandParent.children.indexOf(parent);
+          if (parentIndex > -1) {
+            grandParent.children.splice(parentIndex, 1);
+          }
+        }
+      }
+    }
+
+    // 转换回 Newick 格式
+    return this.convertTreeToNewick(tree.nodes, new Set(), new Map());
+  };
+
+  // 将子树移动到根节点级别
+  moveSubtreeToRoot = (modifiedNewick, subtreeNewick) => {
+    // 移除原 Newick 的最后一个分号
+    const cleanModifiedNewick = modifiedNewick.replace(/;$/, '');
+    // 移除子树 Newick 的最后一个分号
+    const cleanSubtreeNewick = subtreeNewick.replace(/;$/, '');
+    
+    // 将子树添加到根节点的兄弟位置
+    // 格式: (子树, 原始树);
+    return `(${cleanSubtreeNewick},${cleanModifiedNewick});`;
+  };
+
+  // 辅助方法：判断两个节点是否匹配
+  nodesMatch = (node1, node2) => {
+    // 比较节点的关键属性
+    const name1 = node1.data.name || '';
+    const name2 = node2.data.name || '';
+    
+    // 如果有名称，优先使用名称匹配
+    if (name1 && name2) {
+      return name1 === name2;
+    }
+    
+    // 比较分支长度
+    const attr1 = node1.data.attribute || '0';
+    const attr2 = node2.data.attribute || '0';
+    
+    if (attr1 && attr2) {
+      const diff = Math.abs(parseFloat(attr1) - parseFloat(attr2));
+      if (diff < 0.000001) { // 浮点数比较容差
+        return true;
+      }
+    }
+    
+    // 如果没有名称，比较位置信息（需要一定的容差）
+    const x1 = node1.data.abstract_x || 0;
+    const x2 = node2.data.abstract_x || 0;
+    const y1 = node1.data.abstract_y || 0;
+    const y2 = node2.data.abstract_y || 0;
+    
+    const tolerance = 0.001;
+    return Math.abs(x1 - x2) < tolerance && Math.abs(y1 - y2) < tolerance;
+  };
 
   // 處理重新命名後的邏輯（更新merged、重新渲染樹）
   handleNodeRename = (nodeId, newName) => {
@@ -844,6 +1027,7 @@ class PhylotreeApplication extends Component {
             position={contextMenu.position}
             onClose={this.closeContextMenu}
             onCollapseSubtree={this.handleCollapseSubtree}
+            onMoveToRoot={this.handleMoveToRoot}
             isNodeCollapsed={contextMenu.isNodeCollapsed}
           />
 

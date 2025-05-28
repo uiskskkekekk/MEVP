@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * 樹節點右鍵選單元件
@@ -70,6 +70,13 @@ function ContextMenu({
         onClick={onCollapseSubtree}
       >
         {collapseText}
+      </div>
+      <div
+        style={itemStyle} 
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+      >
+        Move to Root
       </div>
     </div>
   );

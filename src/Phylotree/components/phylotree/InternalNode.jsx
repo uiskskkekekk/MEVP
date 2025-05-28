@@ -1,4 +1,3 @@
-import React from "react";
 
 /**
  * InternalNode component for rendering internal nodes of phylogenetic tree

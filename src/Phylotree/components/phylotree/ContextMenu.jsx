@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 function ContextMenu({ 
   visible, 
   position, 
   onClose, 
   onCollapseSubtree,
-  isNodeCollapsed // 新增參數，表示節點是否已折疊
+  onMoveToRoot, // 新增參數
+  isNodeCollapsed // 表示節點是否已折疊
 }) {
   const menuRef = useRef(null);
 
@@ -49,6 +50,11 @@ function ContextMenu({
     borderBottom: '1px solid #eee',
   };
 
+  const lastItemStyle = {
+    ...itemStyle,
+    borderBottom: 'none', // 最後一個項目不需要底部邊框
+  };
+
   const collapseText = isNodeCollapsed ? "Expand Subtree" : "Collapse Subtree";
 
   return (
@@ -60,6 +66,14 @@ function ContextMenu({
         onClick={onCollapseSubtree}
       >
         {collapseText}
+      </div>
+      <div
+        style={lastItemStyle}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        onClick={onMoveToRoot}
+      >
+        Move to Root
       </div>
     </div>
   );

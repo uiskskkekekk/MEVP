@@ -10,6 +10,8 @@ import { convertTreeToNewick } from "../utils/newickParser";
  * @returns {Object} - 樹數據狀態和操作方法
  */
 export function useTreeData(initialNewick) {
+  console.log("🚀 useTreeData Hook 初始化，initialNewick:", initialNewick);
+
   const [tree, setTree] = useState(null);
   const [treeInstance, setTreeInstance] = useState(null);
   const [newick, setNewick] = useState(initialNewick || "");
@@ -26,6 +28,7 @@ export function useTreeData(initialNewick) {
   const [sort, setSort] = useState(null);
   const [alignTips, setAlignTips] = useState("left");
   const [internalLabels, setInternalLabels] = useState(false);
+  const [shouldUpdateTree, setShouldUpdateTree] = useState(false);
 
   // 當initialNewick變化時重置樹
   useEffect(() => {
@@ -42,6 +45,14 @@ export function useTreeData(initialNewick) {
       setClickedBranch(null);
     }
   }, [initialNewick, newick]);
+
+  useEffect(() => {
+    console.log("🔍 Custom Hook - merged 狀態變化:");
+    console.log("  📊 merged keys:", Object.keys(merged));
+    console.log("  📊 merged 內容:", merged);
+    console.log("  📊 collapsedNodes size:", collapsedNodes.size);
+    console.log("  📊 renamedNodes size:", renamedNodes.size);
+  }, [merged, collapsedNodes, renamedNodes]);
 
   /**
    * 處理尺寸變化
@@ -115,6 +126,12 @@ export function useTreeData(initialNewick) {
    * 更新樹的 Newick 格式
    */
   const updateTree = useCallback(() => {
+    console.log("🌳 === updateTree 開始 ===");
+    console.log("  🌳 treeInstance:", !!treeInstance);
+    console.log("  🌳 當前 merged:", merged);
+    console.log("  🌳 當前 collapsedNodes:", Array.from(collapsedNodes));
+    console.log("  🌳 當前 renamedNodes:", Array.from(renamedNodes.entries()));
+
     if (!treeInstance) {
       console.log("樹實例尚未準備好");
       return;
@@ -135,6 +152,17 @@ export function useTreeData(initialNewick) {
       console.error("更新樹時出錯:", error);
     }
   }, [treeInstance, collapsedNodes, renamedNodes]);
+
+  useEffect(() => {
+    if (shouldUpdateTree) {
+      console.log("🔄 所有狀態更新完成，現在執行 updateTree");
+      console.log("  當前 merged:", merged);
+      console.log("  當前 renamedNodes:", Array.from(renamedNodes.entries()));
+
+      updateTree();
+      setShouldUpdateTree(false); // 重置觸發器
+    }
+  }, [shouldUpdateTree]);
 
   /**
    * 替換節點為子樹
@@ -315,27 +343,34 @@ export function useTreeData(initialNewick) {
    */
   const handleNodeRename = useCallback(
     (nodeId, newName) => {
-      console.log(`重命名節點 ${nodeId} 為 ${newName}`);
+      console.log("🏷️ === handleNodeRename 開始 ===");
+      console.log("  📝 nodeId:", nodeId);
+      console.log("  📝 newName:", newName);
+      console.log("  📝 當前 merged:", merged);
+      console.log("  📝 當前 collapsedNodes:", Array.from(collapsedNodes));
 
-      // 檢查節點是否已折疊
       const isCollapsed = collapsedNodes.has(nodeId);
+      console.log("  📝 isCollapsed:", isCollapsed);
 
-      // 檢查是否為空字串
       if (newName.trim() === "") {
+        console.log("  📝 處理空字串重命名");
         setRenamedNodes((prevRenamedNodes) => {
           const newRenamedNodes = new Map(prevRenamedNodes);
           newRenamedNodes.delete(nodeId);
           return newRenamedNodes;
         });
 
-        // 處理折疊節點的重命名
         if (isCollapsed) {
-          updateTree();
+          console.log("  📝 設置 shouldUpdateTree = true (空字串情況)");
+          setShouldUpdateTree(true);
         }
       } else {
+        console.log("  📝 處理非空字串重命名");
         if (isCollapsed && treeInstance) {
-          // 找到對應的點
+          console.log("  📝 進入折疊節點重命名邏輯");
+
           const node = findNodeById(treeInstance.nodes, nodeId);
+          console.log("  📝 找到的節點:", node);
 
           if (node) {
             const siblings = node.parent ? node.parent.children : [];
@@ -369,7 +404,10 @@ export function useTreeData(initialNewick) {
             }
 
             // 为了保证状态更新的顺序，使用函数式更新
+            console.log("  📝 準備更新 merged 狀態");
             setMerged((prevMerged) => {
+              console.log("  📝 setMerged 回調執行");
+              console.log("    📝 prevMerged:", prevMerged);
               const newMerged = { ...prevMerged };
               newMerged[nodeId] = {
                 children: childrenIds,
@@ -381,6 +419,7 @@ export function useTreeData(initialNewick) {
               return newMerged;
             });
 
+            console.log("  📝 準備更新 renamedNodes 狀態");
             setRenamedNodes((prevRenamedNodes) => {
               const newRenamedNodes = new Map(prevRenamedNodes);
               newRenamedNodes.set(nodeId, newName);
@@ -388,7 +427,9 @@ export function useTreeData(initialNewick) {
             });
 
             // 确保tree更新后更新newick
-            setTimeout(updateTree, 0);
+            // setTimeout(updateTree, 0);
+            console.log("  📝 設置 shouldUpdateTree = true");
+            setShouldUpdateTree(true);
             return;
           }
         }
@@ -400,8 +441,9 @@ export function useTreeData(initialNewick) {
           return newRenamedNodes;
         });
       }
+      console.log("🏷️ === handleNodeRename 結束 ===");
     },
-    [collapsedNodes, treeInstance, findNodeById, updateTree]
+    [collapsedNodes, treeInstance, findNodeById, merged]
   );
 
   /**
