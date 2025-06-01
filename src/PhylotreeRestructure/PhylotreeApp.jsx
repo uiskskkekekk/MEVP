@@ -22,7 +22,6 @@ import "./styles/phylotree.css";
 function PhylotreeApp({ initialNewick, padding = DEFAULT_PADDING }) {
   // 使用 useTreeData hook 管理树数据和相关操作
   const {
-    tree,
     treeInstance,
     newick,
     collapsedNodes,
@@ -30,7 +29,6 @@ function PhylotreeApp({ initialNewick, padding = DEFAULT_PADDING }) {
     merged,
     width,
     height,
-    dimensions,
     clickedBranch,
     sort,
     alignTips,
@@ -45,11 +43,10 @@ function PhylotreeApp({ initialNewick, padding = DEFAULT_PADDING }) {
     handleNodeRename,
     handleThresholdCollapse,
     toggleInternalLabels,
-    updateTree,
     setWidth,
     setHeight,
-    replaceNodeWithSubtree, // 确保导出这个方法
-    findNodeById // 确保导出这个辅助方法
+    // replaceNodeWithSubtree, // 确保导出这个方法
+    // findNodeById // 确保导出这个辅助方法
   } = useTreeData(initialNewick);
 
   // 使用 useExportFunctions hook 处理导出功能

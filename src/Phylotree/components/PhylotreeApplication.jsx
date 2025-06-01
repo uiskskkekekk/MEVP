@@ -15,8 +15,8 @@ import ButtonGroup from "react-bootstrap/ButtonGroup";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 
-import ContextMenu from "./phylotree/ContextMenu.jsx"; // 導入 ContextMenu 組件
 import Phylotree from "./phylotree/phylotree.jsx";
+import ContextMenu from "./ui/ContextMenu.jsx"; // 導入 ContextMenu 組件
 
 import commandRegistry from "../../commands/commandRegistry";
 

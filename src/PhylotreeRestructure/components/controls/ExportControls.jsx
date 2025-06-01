@@ -1,4 +1,3 @@
-import React from "react";
 
 /**
  * 樹狀圖匯出控制元件
