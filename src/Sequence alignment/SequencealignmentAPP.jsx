@@ -33,7 +33,6 @@ function SequencealignmentAPP({ haplotypeContent }) {
         currentId = line.substring(1).trim();
         currentSeq = '';
       } else {
-        // 刪除序列中的所有 '-'
         currentSeq += line.trim().replace(/ /g, '');
       }
     }
@@ -42,10 +41,10 @@ function SequencealignmentAPP({ haplotypeContent }) {
 
   const colorSequence = (sequence) => {
     return sequence.split('').map((char, index) => {
-      let bgClass = ''; // 將 colorClass 改名為 bgClass
+      let bgClass = '';
       switch (char.toLowerCase()) {
         case 'a':
-          bgClass = 'bg-a'; // 使用背景色類別
+          bgClass = 'bg-a';
           break;
         case 't':
           bgClass = 'bg-t';
@@ -57,7 +56,7 @@ function SequencealignmentAPP({ haplotypeContent }) {
           bgClass = 'bg-g';
           break;
         case '-':
-          bgClass = 'bg-large'; // 對 '-' 使用背景色類別
+          bgClass = 'bg-large';
           break;
         default:
           bgClass = 'bg-other';
@@ -79,7 +78,11 @@ function SequencealignmentAPP({ haplotypeContent }) {
     setCurrentPage(0); // 搜尋時重置到第一頁
   };
 
-  // 計算當前分頁要顯示的字串
+  const clearSearch = () => {
+    setSearchTerm('');
+    setCurrentPage(0); // 清除搜尋時重置到第一頁
+  };
+
   const filteredSequences = sequences.filter((seq) =>
     seq.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     seq.sequence.toLowerCase().includes(searchTerm.toLowerCase())
@@ -89,7 +92,7 @@ function SequencealignmentAPP({ haplotypeContent }) {
 
   return (
     <div>
-      <div className="search-container" style={{ marginBottom: '1rem' }}>
+      <div className="search-container" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
         <input
           type="text"
           placeholder="搜尋序列或ID"
@@ -97,6 +100,9 @@ function SequencealignmentAPP({ haplotypeContent }) {
           onChange={handleSearch}
           style={{ padding: '0.5rem', fontSize: '1rem', width: '100%' }}
         />
+        <button onClick={clearSearch} style={{ marginLeft: '0.5rem', padding: '0.5rem' }}>
+          清除
+        </button>
       </div>
 
       <div className="result" style={{ overflowX: 'auto', whiteSpace: 'nowrap', padding: '10px', border: 'none', background: 'none' }}>
@@ -141,7 +147,6 @@ function SequencealignmentAPP({ haplotypeContent }) {
           下一頁
         </button>
       </div>
-
     </div>
   );
 }
