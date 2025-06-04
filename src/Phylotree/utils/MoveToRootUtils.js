@@ -241,49 +241,4 @@ export class MoveToRootUtils {
       };
     }
   }
-
-  /**
-   * 驗證移動操作是否安全
-   * @param {Object} treeInstance - 樹實例
-   * @param {string|number} nodeId - 要移動的節點 ID
-   * @returns {Object} 驗證結果
-   */
-  static validateMoveOperation(treeInstance, nodeId) {
-    if (!treeInstance || !nodeId) {
-      return {
-        valid: false,
-        reason: "缺少樹實例或節點 ID",
-      };
-    }
-
-    const targetNode = MoveToRootUtils.findNodeById(treeInstance.nodes, nodeId);
-    if (!targetNode) {
-      return {
-        valid: false,
-        reason: "找不到目標節點",
-      };
-    }
-
-    // 檢查是否為根節點
-    if (!targetNode.parent) {
-      return {
-        valid: false,
-        reason: "不能移動根節點",
-      };
-    }
-
-    // 檢查是否會造成樹結構問題
-    if (
-      targetNode.parent &&
-      targetNode.parent.children &&
-      targetNode.parent.children.length === 1
-    ) {
-      // 這種情況下移動會導致父節點沒有子節點，但我們的算法會處理這種情況
-    }
-
-    return {
-      valid: true,
-      reason: "操作安全",
-    };
-  }
 }

@@ -7,7 +7,7 @@ import ControlButtons from "./components/controls/ControlButtons.jsx";
 import ExportControls from "./components/controls/ExportControls.jsx";
 import SizeControls from "./components/controls/SizeControls.jsx";
 import Phylotree from "./components/core/phylotree.jsx";
-import ContextMenu from "./components/ui/ContextMenu.jsx"; // 導入 ContextMenu 組件
+import ContextMenu from "./components/ui/ContextMenu.jsx";
 
 import commandRegistry from "../commands/commandRegistry.js";
 
@@ -181,15 +181,6 @@ class PhylotreeApplication extends Component {
     const { nodeId } = this.state.contextMenu;
     const { treeInstance, newick } = this.state;
 
-    // 先驗證操作是否安全
-    const validation = MoveToRootUtils.validateMoveOperation(treeInstance, nodeId);
-    if (!validation.valid) {
-      console.error("移動操作驗證失敗:", validation.reason);
-      alert(`無法執行移動操作: ${validation.reason}`);
-      this.closeContextMenu();
-      return;
-    }
-
     try {
       // 使用 SubtreeUtils.moveToRoot 執行移動操作
       const result = MoveToRootUtils.moveToRoot(treeInstance, newick, nodeId);
@@ -350,22 +341,6 @@ class PhylotreeApplication extends Component {
       console.error("更新樹時出錯:", error);
     }
   };
-
-  // 輔助方法：根據ID找節點
-  findNodeById(rootNode, nodeId) {
-    if (!rootNode) return null;
-
-    if (rootNode.unique_id === nodeId) return rootNode;
-
-    if (rootNode.children) {
-      for (const child of rootNode.children) {
-        const found = this.findNodeById(child, nodeId);
-        if (found) return found;
-      }
-    }
-
-    return null;
-  }
 
   // 處理折疊子樹選單項
   handleCollapseSubtree() {
