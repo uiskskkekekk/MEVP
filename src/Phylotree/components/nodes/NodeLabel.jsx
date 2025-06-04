@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 /**
  * NodeLabel component for displaying and editing labels of phylogenetic tree nodes
