@@ -30,7 +30,7 @@ function InternalNode({
     >
       <circle r={isHovered ? 5 : 3} className={isHovered ? "hovered" : ""} />
 
-      <text
+      {/* <text
         x="8"
         y="4"
         fill="red"
@@ -40,7 +40,7 @@ function InternalNode({
         }}
       >
         {id}
-      </text>
+      </text> */}
     </g>
   );
 }
