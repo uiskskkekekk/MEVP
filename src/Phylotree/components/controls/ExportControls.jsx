@@ -9,8 +9,12 @@
 function ExportControls({ onExportNewick, onExportImage }) {
   return (
     <div className="export-container">
-      <button onClick={onExportNewick}>Export Newick</button>
-      <button onClick={onExportImage}>Export Image</button>
+      <button onClick={onExportNewick}>
+        Export Newick
+      </button>
+      <button onClick={onExportImage}>
+        Export Image
+      </button>
     </div>
   );
 }

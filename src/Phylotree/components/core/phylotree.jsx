@@ -12,9 +12,9 @@ import {
   shouldHideInternalNode,
 } from "../../utils/tree-utils.js";
 import BranchLengthAxis from "../axes/BranchLengthAxis.jsx";
-import InternalNode from "./InternalNode.jsx";
-import NodeLabel from "./NodeLabel.jsx";
-import Branch from "./branch.jsx";
+import InternalNode from "../nodes/InternalNode.jsx";
+import NodeLabel from "../nodes/NodeLabel.jsx";
+import Branch from "../nodes/branch.jsx";
 
 import "../../styles/phylotree.css";
 

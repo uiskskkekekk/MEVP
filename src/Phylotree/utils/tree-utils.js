@@ -4,25 +4,6 @@
  * @param {Object} tree - 系統發生樹對象
  * @returns {Map} - 包含所有內部節點的Map
  */
-// export function collectInternalNodes(tree) {
-//   const internalNodes = new Map();
-
-//   tree.links.forEach((link) => {
-//     const source = link.source;
-//     if (source.children && source.children.length > 0) {
-//       // 如果這個源節點還沒被記錄
-//       if (!internalNodes.has(source.unique_id)) {
-//         internalNodes.set(source.unique_id, {
-//           x: source.data.abstract_x,
-//           y: source.data.abstract_y,
-//           node: source,
-//         });
-//       }
-//     }
-//   });
-
-//   return internalNodes;
-// }
 // 修改後的函數，收集所有節點
 export function collectInternalNodes(tree) {
   const allNodes = new Map();
