@@ -381,7 +381,7 @@ class PhylotreeApplication extends Component {
 
           if (
             // prevState.merged.hasOwnProperty(nodeId) &&
-            prevState.treeInstance
+            prevState.treeInstance && prevState.merged[nodeId]
           ) {
             const subtreeNewick = prevState.merged[nodeId].subtreeNewick;
 
