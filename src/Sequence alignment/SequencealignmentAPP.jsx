@@ -40,29 +40,36 @@ function SequencealignmentAPP({ haplotypeContent }) {
   };
 
   const colorSequence = (sequence) => {
-    return sequence.split('').map((char, index) => {
-      let bgClass = '';
-      switch (char.toLowerCase()) {
-        case 'a':
-          bgClass = 'bg-a';
-          break;
-        case 't':
-          bgClass = 'bg-t';
-          break;
-        case 'c':
-          bgClass = 'bg-c';
-          break;
-        case 'g':
-          bgClass = 'bg-g';
-          break;
-        case '-':
-          bgClass = 'bg-large';
-          break;
-        default:
-          bgClass = 'bg-other';
-      }
-      return `<span class="${bgClass}" key="${index}">${char}</span>`;
-    }).join('');
+    const chunks = [];
+    for (let i = 0; i < sequence.length; i += 10) {
+      chunks.push(sequence.substring(i, i + 10));
+    }
+    return chunks.map((chunk, chunkIndex) => (
+      `<span class="chunk" key="${chunkIndex}">${chunk.split('').map((char, index) => {
+        let bgClass = '';
+        switch (char.toLowerCase()) {
+          case 'a':
+            bgClass = 'bg-a';
+            break;
+          case 't':
+            bgClass = 'bg-t';
+            break;
+          case 'c':
+            bgClass = 'bg-c';
+            break;
+          case 'g':
+            bgClass = 'bg-g';
+            break;
+          case '-':
+            bgClass = 'bg-large';
+            break;
+          default:
+            bgClass = 'bg-other';
+        }
+        return `<span class="${bgClass}" key="${index}">${char}</span>`;
+      }).join('')}
+      ${chunkIndex < chunks.length - 1 ? '|' : ''}</span>`
+    )).join('');
   };
 
   const handleNextPage = () => {
