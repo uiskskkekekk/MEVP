@@ -181,49 +181,97 @@ function hammingDistance(seq1, seq2) {
  * edges: Hamming distance = 1 的序列連線
  */
 app.get("/HaplotypeNetwork", (req, res) => {
-  const nodes = [];
+  const sequenceMap = new Map();
 
-  // 從 URL 查詢參數取得 maxDistance，預設值為 1~5 之間（可自行設定）
-  const maxDistance = parseInt(req.query.maxDistance) || 5;
-
-  // 聚合節點
   for (const { name, city, count } of geneCounts) {
     const sequence = geneSequences[name];
     if (!sequence) continue;
 
-    // 尋找是否已存在該序列的 node
-    let existing = nodes.find((n) => n.id === name);
-    if (existing) {
-      existing.count += count;
-      existing.cities[city] = (existing.cities[city] || 0) + count;
-    } else {
-      nodes.push({
-        id: name,
-        sequence,
-        count,
-        cities: { [city]: count },
+    if (!sequenceMap.has(sequence)) {
+      sequenceMap.set(sequence, []);
+    }
+    sequenceMap.get(sequence).push({ name, city, count });
+  }
+
+  const nodes = [];
+  const representatives = [];
+  const edges = [];
+
+  let groupIdCounter = 0;
+
+  for (const [sequence, geneGroup] of sequenceMap.entries()) {
+    const nodeMap = new Map();
+
+    for (const { name, city, count } of geneGroup) {
+      if (!nodeMap.has(name)) {
+        nodeMap.set(name, {
+          id: name,
+          sequence,
+          count: 0,
+          cities: {},
+          groupId: groupIdCounter,
+        });
+      }
+      const node = nodeMap.get(name);
+      node.count += count;
+      node.cities[city] = (node.cities[city] || 0) + count;
+    }
+
+    const groupNodes = Array.from(nodeMap.values());
+    const representative = groupNodes.reduce((a, b) => (a.count >= b.count ? a : b));
+    representative.isRepresentative = true;
+
+    representatives.push(representative);
+    nodes.push(...groupNodes);
+
+    for (const node of groupNodes) {
+      if (node.id !== representative.id) {
+        edges.push({
+          source: node.id,
+          target: representative.id,
+          distance: 0,
+        });
+      }
+    }
+
+    groupIdCounter++;
+  }
+
+  // 建立代表之間的環狀連線（依 Hamming distance 貪婪最小距離）
+  const used = new Set();
+  let current = representatives[0];
+  used.add(current.id);
+
+  while (used.size < representatives.length) {
+    let minDist = Infinity;
+    let closest = null;
+
+    for (const rep of representatives) {
+      if (used.has(rep.id)) continue;
+      const dist = hammingDistance(current.sequence, rep.sequence);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = rep;
+      }
+    }
+
+    if (closest) {
+      edges.push({
+        source: current.id,
+        target: closest.id,
+        distance: hammingDistance(current.sequence, closest.sequence),
       });
+      used.add(closest.id);
+      current = closest;
     }
   }
 
-  // 加入 maxDistance 過濾條件
-  const edges = [];
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const seq1 = nodes[i].sequence;
-      const seq2 = nodes[j].sequence;
-      if (seq1.length === seq2.length) {
-        const dist = hammingDistance(seq1, seq2);
-        if (dist > 0 && dist <= maxDistance) {
-          edges.push({
-            source: nodes[i].id,
-            target: nodes[j].id,
-            distance: dist,
-          });
-        }
-      }
-    }
-  }
+  const start = representatives[0];
+  edges.push({
+    source: current.id,
+    target: start.id,
+    distance: hammingDistance(current.sequence, start.sequence),
+  });
 
   res.json({ nodes, edges });
 });

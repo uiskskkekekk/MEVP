@@ -2,8 +2,9 @@ import React, { useMemo, memo, useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import TaiwanMapImage from "../../assets/haplotype/TW.png";
 import { cityCoordinates } from "../data/cityCoordinates";
+import { cityCoordinates2 } from "../data/cityCoordinates2";
+import "../components/AppStyles.css";
 
-// --- PieChart 優化渲染：只在需要時更新 ---
 const areEqual = (prevProps, nextProps) => {
   if (prevProps.city !== nextProps.city) return false;
   if (prevProps.chartData.totalCount !== nextProps.chartData.totalCount) return false;
@@ -24,19 +25,14 @@ const areEqual = (prevProps, nextProps) => {
   return true;
 };
 
-// --- 單一城市圓形圖元件 ---
 const CityPieChart = memo(({ city, chartData, geneColors, position }) => {
   const { data, totalCount } = chartData;
-  const outerRadius = Math.min(10 + Math.floor(totalCount / 10) * 10, 50); // 動態半徑設定
+  const outerRadius = Math.min(10 + Math.floor(totalCount / 10) * 10, 50);
 
   return (
     <div
-      style={{
-        position: "absolute",
-        left: `${position.cx}px`,
-        top: `${position.cy}px`,
-        transform: "translate(-50%, -50%)",
-      }}
+      className="city-pie-chart"
+      style={{ left: `${position.cx}px`, top: `${position.cy}px` }}
     >
       <PieChart width={outerRadius * 2} height={outerRadius * 2}>
         <Pie data={data} dataKey="value" cx="50%" cy="50%" outerRadius={outerRadius}>
@@ -50,25 +46,22 @@ const CityPieChart = memo(({ city, chartData, geneColors, position }) => {
   );
 }, areEqual);
 
-// --- 主元件：台灣地圖與基因圓圖選擇 ---
 const FilteredTaiwanMapComponent = ({
   genes,
   cityGeneData,
   geneColors,
   selectedGene,
   activeSimilarityGroup,
-
-  onSelectedGenesChange, // ← 新增這行
+  onSelectedGenesChange,
 }) => {
-  const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });         // 經緯度顯示
-  const [searchTerm, setSearchTerm] = useState("");                 // 搜尋欄文字
-  const [currentPage, setCurrentPage] = useState(0);                // 分頁頁碼
-  const [selectedGenes, setSelectedGenes] = useState([]);           // 被選取的基因
-  const genesPerPage = 100;                                         // 每頁顯示基因數
+  const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [selectedGenes, setSelectedGenes] = useState([]);
+  const genesPerPage = 100;
 
   const allGenes = useMemo(() => genes.map((g) => g.name), [genes]);
 
-  // --- 根據主選基因與相似群組，自動設定選取基因 ---
   useEffect(() => {
     const allowed = new Set([
       selectedGene,
@@ -78,13 +71,11 @@ const FilteredTaiwanMapComponent = ({
   }, [selectedGene, activeSimilarityGroup]);
 
   useEffect(() => {
-  if (onSelectedGenesChange) {
-    onSelectedGenesChange(selectedGenes);
-  }
-}, [selectedGenes, onSelectedGenesChange]);
+    if (onSelectedGenesChange) {
+      onSelectedGenesChange(selectedGenes);
+    }
+  }, [selectedGenes, onSelectedGenesChange]);
 
-
-  // --- 基因過濾 + 搜尋邏輯 ---
   const filteredGeneList = useMemo(() => {
     return allGenes.filter((name) =>
       name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -97,7 +88,6 @@ const FilteredTaiwanMapComponent = ({
   );
   const totalPages = Math.ceil(filteredGeneList.length / genesPerPage);
 
-  // --- 切換單一基因選取狀態 ---
   const toggleGene = (name) => {
     setSelectedGenes((prev) =>
       prev.includes(name) ? prev.filter((g) => g !== name) : [...prev, name]
@@ -107,7 +97,6 @@ const FilteredTaiwanMapComponent = ({
   const handleSelectAll = () => setSelectedGenes(filteredGeneList);
   const handleClearAll = () => setSelectedGenes([]);
 
-  // --- 根據已選基因，計算各縣市的圓圖資料 ---
   const filteredCityGeneData = useMemo(() => {
     const result = {};
     for (const [city, genes] of Object.entries(cityGeneData)) {
@@ -122,7 +111,6 @@ const FilteredTaiwanMapComponent = ({
     return result;
   }, [cityGeneData, selectedGenes]);
 
-  // --- 滑鼠移動計算經緯度 ---
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -134,43 +122,76 @@ const FilteredTaiwanMapComponent = ({
   };
 
   return (
-    <div style={{ display: "flex", gap: "10px" }}>
-      {/* --- 地圖區 --- */}
-      <div
-        style={{ position: "relative", width: "400px", height: "600px" }}
-        onMouseMove={handleMouseMove}
-      >
+    <div className="flex flex-gap-10">
+      <div className="map-container" onMouseMove={handleMouseMove}>
         <img src={TaiwanMapImage} alt="Taiwan Map" width={400} height={600} />
-        {Object.entries(filteredCityGeneData).map(([city, chartData]) => (
-          <CityPieChart
-            key={city}
-            city={city}
-            chartData={chartData}
-            geneColors={geneColors}
-            position={cityCoordinates[city]}
-          />
-        ))}
-        {/* 經緯度顯示標籤 */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "5px",
-            left: "5px",
-            backgroundColor: "rgba(236, 15, 15, 0.85)",
-            padding: "4px 8px",
-            borderRadius: "5px",
-            fontSize: "12px",
-            fontFamily: "monospace",
-          }}
+        <svg
+          width={400}
+          height={600}
+          style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
         >
+          <defs>
+            <marker
+              id="arrow"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0,0 L0,6 L6,3 z" fill="gray" />
+            </marker>
+          </defs>
+          {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
+            const outerRadius = Math.min(10 + Math.floor(chartData.totalCount / 10) * 10, 50);
+            const threshold = 20;
+            const from = cityCoordinates[city];
+            const to = (outerRadius > threshold ? cityCoordinates2[city] : cityCoordinates[city]) || from;
+
+            if (from && to && (from.cx !== to.cx || from.cy !== to.cy)) {
+              return (
+                <line
+                  key={`line-${city}`}
+                  x1={from.cx}
+                  y1={from.cy}
+                  x2={to.cx}
+                  y2={to.cy}
+                  stroke="gray"
+                  strokeWidth={1.5}
+                  strokeDasharray="4,4"
+                  markerEnd="url(#arrow)"
+                />
+              );
+            }
+            return null;
+          })}
+        </svg>
+
+        {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
+          const outerRadius = Math.min(10 + Math.floor(chartData.totalCount / 10) * 10, 50);
+          const threshold = 20;
+          const from = cityCoordinates[city];
+          const to = (outerRadius > threshold ? cityCoordinates2[city] : cityCoordinates[city]) || from;
+
+          return (
+            <CityPieChart
+              key={city}
+              city={city}
+              chartData={chartData}
+              geneColors={geneColors}
+              position={to}
+            />
+          );
+        })}
+
+        <div className="coord-label">
           經度: {latLon.lon}°E<br />
           緯度: {latLon.lat}°N
         </div>
       </div>
 
-      {/* --- 基因選單區 --- */}
-      <div style={{ display: "flex", flexDirection: "column", width: "700px" }}>
-        {/* 搜尋與操作區塊 */}
+      <div className="flex flex-column" style={{ width: "700px" }}>
         <div style={{ marginBottom: "8px" }}>
           <h4>選擇顯示基因：</h4>
           <input
@@ -178,15 +199,14 @@ const FilteredTaiwanMapComponent = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜尋基因名稱"
-            style={{ width: "95%", marginBottom: "8px" }}
+            className="search-input"
           />
-          <div style={{ display: "flex", gap: "5px" }}>
+          <div className="flex flex-gap-5">
             <button onClick={handleSelectAll}>全選</button>
             <button onClick={handleClearAll}>清除選擇</button>
           </div>
         </div>
 
-        {/* 基因勾選清單區 */}
         <div style={{ flex: 1, overflowY: "auto", maxHeight: "460px", paddingRight: "5px" }}>
           {currentGenes.map((name) => {
             const isEnabled =
@@ -214,19 +234,8 @@ const FilteredTaiwanMapComponent = ({
           })}
         </div>
 
-        {/* 分頁控制區塊 */}
-        <div
-          style={{
-            marginTop: "10px",
-            display: "flex",
-            gap: "10px",
-            justifyContent: "center",
-          }}
-        >
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-            disabled={currentPage === 0}
-          >
+        <div className="pagination-controls">
+          <button onClick={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
             上一頁
           </button>
           <span>第 {currentPage + 1} 頁 / 共 {totalPages} 頁</span>

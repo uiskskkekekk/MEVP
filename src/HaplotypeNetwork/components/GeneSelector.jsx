@@ -1,26 +1,27 @@
 // GeneSelector.jsx
+// 選擇特定基因並進行相似度比對，顯示相關比對結果
+
 import React, { useState } from "react";
 import { FixedSizeList as List } from "react-window";
+import "../components/AppStyles.css";
 
 const GeneSelector = ({
-  genes,                    // 所有基因清單
-  selectedGene,            // 當前選取的基因名稱
-  setSelectedGene,         // 設定選取基因
-  showAllGenes,            // 顯示所有基因（地圖用）
-  showSpecificGene,        // 顯示特定基因（未使用，可移除）
-  geneColors,              // 基因對應顏色
-  setActiveSimilarityGroup, // 設定目前相似基因群組
-  onSimilarityResults,     // 比對完成後的回呼函式
+  genes,
+  selectedGene,
+  setSelectedGene,
+  showAllGenes,
+  geneColors,
+  setActiveSimilarityGroup,
+  onSimilarityResults,
 }) => {
-  // UI 狀態管理
-  const [currentPage, setCurrentPage] = useState(0);         // 基因列表目前頁數
-  const [customMin, setCustomMin] = useState(95);            // 自訂最小相似度
-  const [customMax, setCustomMax] = useState(100);           // 自訂最大相似度
-  const [progress, setProgress] = useState(null);            // 比對進度
-  const [results, setResults] = useState([]);                // 比對結果
-  const [resultsPage, setResultsPage] = useState(0);         // 結果頁數
+  const [currentPage, setCurrentPage] = useState(0);
+  const [customMin, setCustomMin] = useState(95);
+  const [customMax, setCustomMax] = useState(100);
+  const [progress, setProgress] = useState(null);
+  const [results, setResults] = useState([]);
+  const [resultsPage, setResultsPage] = useState(0);
 
-  // 分頁相關常數
+  // 分頁設定
   const pageSize = 15;
   const totalPages = Math.ceil(genes.length / pageSize);
   const currentGenes = genes.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -29,7 +30,6 @@ const GeneSelector = ({
   const resultsTotalPages = Math.ceil(results.length / resultsPerPage);
   const currentResults = results.slice(resultsPage * resultsPerPage, (resultsPage + 1) * resultsPerPage);
 
-  // 重設選取與比對狀態
   const resetSelection = () => {
     setSelectedGene(null);
     setResults([]);
@@ -38,28 +38,25 @@ const GeneSelector = ({
     setProgress(null);
   };
 
-  // 選擇或取消選擇基因
   const handleSelect = (geneName) => {
     const isSameGene = selectedGene === geneName;
     resetSelection();
     isSameGene ? showAllGenes() : setSelectedGene(geneName);
   };
 
-  // 基因列表翻頁
   const handlePageChange = (dir) => {
     setCurrentPage((prev) =>
       dir === "prev" ? Math.max(prev - 1, 0) : Math.min(prev + 1, totalPages - 1)
     );
   };
 
-  // 結果頁面翻頁
   const handleResultsPageChange = (dir) => {
     setResultsPage((prev) =>
       dir === "prev" ? Math.max(prev - 1, 0) : Math.min(prev + 1, resultsTotalPages - 1)
     );
   };
 
-  // 相似度篩選與比對請求
+  // 發送比對請求
   const filterBySimilarity = async (min, max) => {
     if (!selectedGene) return;
 
@@ -82,7 +79,6 @@ const GeneSelector = ({
 
       const data = await response.json();
 
-      // 篩選與排序比對結果
       const filtered = data
         .filter(({ similarity }) => similarity >= min && similarity <= max)
         .sort((a, b) => b.similarity - a.similarity);
@@ -99,10 +95,10 @@ const GeneSelector = ({
   };
 
   return (
-    <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-      {/* 基因選單區塊 */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "5px", minWidth: "220px" }}>
-        <button onClick={() => { resetSelection(); showAllGenes(); }}>
+    <div className="flex flex-gap-20 align-start">
+      {/* 左側：基因列表區域 */}
+      <div className="flex flex-column flex-gap-5" style={{ minWidth: "220px" }}>
+        <button className="button" onClick={() => { resetSelection(); showAllGenes(); }}>
           Select genes
         </button>
 
@@ -110,11 +106,12 @@ const GeneSelector = ({
           <button
             key={gene.name}
             onClick={() => handleSelect(gene.name)}
+            className="button"
             style={{
               backgroundColor: selectedGene === gene.name ? "#cde" : geneColors[gene.name] || "#fff",
-              color: "#000",
               border: "1px solid #aaa",
               padding: "4px 10px",
+              color: "#000",
               cursor: "pointer",
             }}
           >
@@ -122,29 +119,26 @@ const GeneSelector = ({
           </button>
         ))}
 
-        {/* 頁面控制 */}
-        <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "10px" }}>
-          <button onClick={() => handlePageChange("prev")} disabled={currentPage === 0}>
-            上一頁
-          </button>
+        <div className="pagination-controls">
+          <button onClick={() => handlePageChange("prev")} disabled={currentPage === 0}>上一頁</button>
           <span>第 {currentPage + 1} 頁 / 共 {totalPages} 頁</span>
-          <button onClick={() => handlePageChange("next")} disabled={currentPage === totalPages - 1}>
-            下一頁
-          </button>
+          <button onClick={() => handlePageChange("next")} disabled={currentPage === totalPages - 1}>下一頁</button>
         </div>
       </div>
 
-      {/* 相似度與結果區塊 */}
-      <div style={{ flex: 1 }}>
+      {/* 右側：比對功能與結果區域 */}
+      <div className="flex-column flex-gap-10" style={{ flex: 1 }}>
         <strong>比對相似基因：</strong>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "5px" }}>
+
+        {/* 常用範圍按鈕 */}
+        <div className="button-group">
           <button onClick={() => filterBySimilarity(100, 100)}>100% 相似</button>
           <button onClick={() => filterBySimilarity(90, 99.99)}>90%~99%</button>
           <button onClick={() => filterBySimilarity(80, 89.99)}>80%~89%</button>
         </div>
 
-        {/* 自訂相似度區間 */}
-        <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
+        {/* 自訂範圍設定 */}
+        <div className="flex flex-gap-10 align-center">
           <span>自訂相似度範圍：</span>
           <input
             type="number"
@@ -176,14 +170,11 @@ const GeneSelector = ({
           </button>
         </div>
 
-        {/* 處理中提示 */}
         {progress && (
-          <p style={{ marginTop: "10px", color: "blue" }}>
-            正在比對中...
-          </p>
+          <p style={{ marginTop: "10px", color: "blue" }}>正在比對中...</p>
         )}
 
-        {/* 顯示比對結果 */}
+        {/* 比對結果顯示 */}
         {results.length > 0 && (
           <div style={{ marginTop: "10px", borderTop: "1px solid #ccc", paddingTop: "10px" }}>
             <strong>比對結果：</strong>
@@ -197,24 +188,18 @@ const GeneSelector = ({
                 );
               }}
             </List>
-
-            {/* 結果翻頁 */}
-            <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "10px" }}>
-              <button onClick={() => handleResultsPageChange("prev")} disabled={resultsPage === 0}>
-                上一頁
-              </button>
+            <div className="pagination-controls">
+              <button onClick={() => handleResultsPageChange("prev")} disabled={resultsPage === 0}>上一頁</button>
               <span>第 {resultsPage + 1} 頁 / 共 {resultsTotalPages} 頁</span>
               <button
                 onClick={() => handleResultsPageChange("next")}
                 disabled={resultsPage >= resultsTotalPages - 1}
-              >
-                下一頁
-              </button>
+              >下一頁</button>
             </div>
           </div>
         )}
 
-        {/* 無比對結果提示 */}
+        {/* 無結果顯示 */}
         {results.length === 0 && selectedGene && progress === null && (
           <div style={{ marginTop: "10px", color: "gray" }}>
             無相似基因
