@@ -42,7 +42,6 @@ function Branch(props) {
       }
     : {};
 
-  // 保持原本的分支樣式，不改變分支顏色
   const all_branch_styles = Object.assign(
     {},
     branchStyle,
