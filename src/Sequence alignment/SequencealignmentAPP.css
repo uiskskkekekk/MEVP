@@ -11,7 +11,6 @@
     filter: drop-shadow(0 0 2em #61dafbaa);
   }
   
-  
   body {
     font-family: 'Courier New', Courier, monospace; /* 設定全局字體 */
   }
@@ -33,8 +32,6 @@
       font-size: 18px; /* 較大設備的字體大小 */
     }
   }
-  
-  
   
   .card {
     padding: 2em;
@@ -58,34 +55,50 @@
     padding: 5px; /* 內邊距 */
     font-family: 'Courier New', Courier, monospace; /* 對序列字符串的樣式 */
   }
-  
+  .sequence-container {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .sequence-id {
+    flex: 0 0 auto;
+    margin-right: 20px;
+    text-align: right;
+    width: max-content;
+    padding-top: 2px; /* 增加 ID 的上內距 */
+  }
+
+  .sequence-string {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+  }
+
   .bg-a {
-  background-color: lightgreen; /* A 的背景色 */
+    background-color: lightgreen;
   }
 
   .bg-t {
-    background-color: lightcoral; /* T 的背景色 */
+    background-color: lightblue;
   }
 
   .bg-c {
-    background-color: lightblue; /* C 的背景色 */
+    background-color: lightpink;
   }
 
   .bg-g {
-    background-color: lightyellow; /* G 的背景色 */
+    background-color: lightyellow;
   }
 
   .bg-large {
-    background-color: lightgray; /* '-' 的背景色 */
+    background-color: lightgray;
   }
 
   .bg-other {
-    background-color: lightgray; /* 其他字符的背景色 */
+    background-color: lightcoral;
   }
 
-  
-  
-  
   .pagination {
     display: flex;
     justify-content: center;
@@ -116,11 +129,10 @@
     cursor: not-allowed; /* 禁用狀態的指針 */
   }
   .table-container {
-  width: 100%;
-  border: 1px solid #ddd;
+    width: 100%;
+    border: 1px solid #ddd;
   }
   .color-bg-large {
-  font-size: 2em; /* 調整字體大小 */
-  color: inherit;   /* 繼承父元素顏色 */
+    font-size: 2em; /* 調整字體大小 */
+    color: inherit;   /* 繼承父元素顏色 */
   }
-

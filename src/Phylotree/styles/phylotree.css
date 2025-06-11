@@ -22,8 +22,8 @@ path.rp-branch:hover {
 
 .phylotree-application {
   display: flex;
-  flex-direction: column;
-  align-items: left; /* Center align items horizontally */
+  justify-content: space-between;
+  align-items: center; /* Center align items horizontally */
   margin-top: 15px;
 }
 
@@ -59,6 +59,24 @@ path.rp-branch:hover {
 
 .button-group-container {
   margin: 10px;
+}
+
+.search-container input{
+  border-radius: 5px;
+  margin-left: 40px;
+}
+
+.search-container button{
+  border-radius: 5px;
+  margin-left: 10px;
+}
+
+.search-results-count{
+  margin-left: 10px;
+}
+
+.search-container button:hover{
+  background-color: #E5E5E5;
 }
 
 circle {

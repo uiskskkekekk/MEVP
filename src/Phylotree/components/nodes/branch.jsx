@@ -1,5 +1,3 @@
-import React from "react";
-
 import { line } from "d3-shape";
 
 function Branch(props) {
@@ -12,7 +10,9 @@ function Branch(props) {
     isCollapsed,
     branchStyle = { strokeWidth: 2, stroke: "grey" },
     labelStyle = {},
+    isHighlighted = false,
   } = props;
+  
   const { source, target } = props.link;
 
   const source_x = xScale(source.data.abstract_x);
@@ -42,12 +42,6 @@ function Branch(props) {
       }
     : {};
 
-  // const all_branch_styles = Object.assign(
-  //   {},
-  //   props.branchStyle,
-  //   computed_branch_styles
-  // );
-
   const all_branch_styles = Object.assign(
     {},
     branchStyle,
@@ -57,13 +51,18 @@ function Branch(props) {
   const label_style =
     target.data.name && props.labelStyler ? props.labelStyler(target.data) : {};
 
+  const calculateTextWidth = (text, fontSize = 14) => {
+    const charWidth = fontSize * 0.6; // 大部分字體的平均字元寬度
+    return text.length * charWidth + 8; // 加一些 padding
+  };
+
   return (
     <g className="node">
       <path
         className="rp-branch"
         fill="none"
         d={branch_line(data)}
-        onClick={() => props.onClick(props.link)}
+        onClick={() => props.onClick && props.onClick(props.link)}
         {...all_branch_styles}
         onMouseMove={
           props.tooltip
@@ -88,15 +87,37 @@ function Branch(props) {
             y2={target_y}
             className="rp-branch-tracer"
           />
+          
+          {/* 如果高亮，先畫黃色背景矩形 */}
+          {isHighlighted && target.data.name && (
+            <rect
+              x={tracer_x2 + 5}
+              y={target_y - 10}
+              width={
+                target.data.text_width || 
+                calculateTextWidth(
+                  target.data.name.slice(0, props.maxLabelWidth || target.data.name.length)
+                )
+              }
+              height={18}
+              fill="yellow"
+              // stroke="#ffd700"
+              strokeWidth="1"
+              // rx="1"
+              // ry="3"
+            />
+          )}
+          
           <text
-            x={tracer_x2 + 5}
+            x={tracer_x2 + 8}
             y={target_y}
             textAnchor="start"
             alignmentBaseline="middle"
             {...Object.assign({}, props.labelStyle, label_style)}
             className="rp-label"
+            style={isHighlighted ? { fill: 'black', fontWeight: 'bold' } : {}}
           >
-            {target.data.name.slice(0, props.maxLabelWidth)}
+            {target.data.name && target.data.name.slice(0, props.maxLabelWidth)}
           </text>
         </>
       )}
