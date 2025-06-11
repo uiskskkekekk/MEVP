@@ -21,6 +21,8 @@
     "d3": "^5.7.0",
     "d3-react-axis": "0.0.3",
     "d3-shape": "^3.2.0",
+    "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
     "phylotree": "1",
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.9",

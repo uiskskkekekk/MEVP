@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './SequencealignmentAPP.css'; // 引入 CSS 文件
 
 function SequencealignmentAPP({ haplotypeContent }) {
@@ -68,7 +68,7 @@ function SequencealignmentAPP({ haplotypeContent }) {
         }
         return `<span class="${bgClass}" key="${index}">${char}</span>`;
       }).join('')}
-      ${chunkIndex < chunks.length - 1 ? '|' : ''}</span>`
+      ${chunkIndex < chunks.length - 1 ? ' ' : ''}</span>`
     )).join('');
   };
 
@@ -115,7 +115,7 @@ function SequencealignmentAPP({ haplotypeContent }) {
       <div className="result" style={{ overflowX: 'auto', whiteSpace: 'nowrap', padding: '10px', border: 'none', background: 'none' }}>
         {paginatedSequences.map((seq, index) => (
           <div className="sequence-container" key={index} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
-            <div className="sequence-id" style={{ flex: '0 0 auto', marginRight: '20px', textAlign: 'right', width: '170px' }}>
+            <div className="sequence-id" style={{ flex: '0 0 auto', marginRight: '20px', textAlign: 'right', width: '500px' }}>
               {seq.id}
             </div>
             <div className="sequence-string" style={{ flex: 1, display: 'flex', alignItems: 'flex-start' }}>
