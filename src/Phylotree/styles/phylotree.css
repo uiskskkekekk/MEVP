@@ -68,7 +68,11 @@ path.rp-branch:hover {
 
 .search-container button{
   border-radius: 5px;
-  margin-left: 5px;
+  margin-left: 10px;
+}
+
+.search-results-count{
+  margin-left: 10px;
 }
 
 .search-container button:hover{

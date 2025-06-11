@@ -38,6 +38,10 @@ class PhylotreeApplication extends Component {
       },
       treeInstance: null,
       currentThreshold: null,
+      searchTerm: "",           // 搜尋關鍵字
+      highlightedNodes: new Set(), // 高亮節點ID集合
+      searchResults: [],        // 搜尋結果陣列
+      currentSearchIndex: -1,   // 當前選中的搜尋結果索引
     };
 
     // 綁定方法
@@ -544,35 +548,100 @@ class PhylotreeApplication extends Component {
     }
   };
 
+  // 執行搜尋的主要方法
+  handleSearch = (searchTerm) => {
+    const { treeInstance } = this.state;
+    
+    if (!treeInstance || !searchTerm.trim()) {
+      // 清空搜尋結果
+      this.setState({
+        searchTerm: "",
+        highlightedNodes: new Set(),
+        searchResults: [],
+        currentSearchIndex: -1
+      });
+      return;
+    }
+
+    const matchedNodes = this.searchInTree(treeInstance, searchTerm);
+    
+    this.setState({
+      searchTerm: searchTerm,
+      highlightedNodes: new Set(matchedNodes.map(node => node.id)),
+      searchResults: matchedNodes,
+      currentSearchIndex: matchedNodes.length > 0 ? 0 : -1
+    });
+  };
+
+  // 在樹中搜尋節點
+  searchInTree = (tree, searchTerm) => {
+    const results = [];
+    const searchLower = searchTerm.toLowerCase();
+    
+    tree.traverse_and_compute((node) => {
+      if (node.data.name && 
+          node.data.name.toLowerCase().includes(searchLower)) {
+        results.push({
+          id: node.unique_id,
+          name: node.data.name,
+          node: node
+        });
+      }
+      return true;
+    });
+    
+    return results;
+  };
+
+
+
+
   _renderControls() {
     const { width, height } = this.state;
 
     return (
-      <div className="button-group-container">
-        <ControlButtons {...this._getControlButtonProps()} />
-
-        <input
-          type="checkbox"
-          checked={this.state.internal}
-          onChange={() =>
-            this.setState({ internal: !this.state.internal })
-          }
-          style={{
-            margin: "0px 3px 0px 10px",
-          }}
-        />
-        {this.state.internal ? "Hide" : "Show"} internal labels
-        <div className="size-control-and-export">
-          <SizeControls
-            width={width}
-            height={height}
-            onWidthChange={this.handleWidthChange}
-            onHeightChange={this.handleHeightChange}
+      <div className="phylotree-application">
+        <div className="button-group-container">
+          <ControlButtons {...this._getControlButtonProps()} />
+          <input
+            type="checkbox"
+            checked={this.state.internal}
+            onChange={() =>
+              this.setState({ internal: !this.state.internal })
+            }
+            style={{
+              margin: "0px 3px 0px 10px",
+            }}
           />
-          <ExportControls
-            onExportNewick={this.exportModifiedNewick}
-            onExportImage={this.exportTreeAsImage}
+          {this.state.internal ? "Hide" : "Show"} internal labels
+          <div className="size-control-and-export">
+            <SizeControls
+              width={width}
+              height={height}
+              onWidthChange={this.handleWidthChange}
+              onHeightChange={this.handleHeightChange}
+            />
+            <ExportControls
+              onExportNewick={this.exportModifiedNewick}
+              onExportImage={this.exportTreeAsImage}
+            />
+          </div>
+        </div>
+        <div className="search-container">
+          <input 
+            name="sequenceName"
+            placeholder="Species name..."
+            value={this.state.searchTerm}
+            onChange={(e) => this.handleSearch(e.target.value)}
           />
+          <button onClick={() => this.handleSearch("")}>
+            Clear
+          </button>
+          {this.state.searchResults.length > 0 && (
+            <span className="search-results-count">
+              {this.state.searchResults.length} result{this.state.searchResults.length !== 1 ? 's' : ''} found
+            </span>
+          )}
         </div>
       </div>
     )
@@ -637,6 +706,8 @@ class PhylotreeApplication extends Component {
       onTreeReady: this.handleTreeReady,
       onThresholdCollapse: this.handleThresholdCollapse,
       onNodeRename: this.handleNodeRename,
+      highlightedNodes: this.state.highlightedNodes,
+      searchTerm: this.state.searchTerm,
     };
   }
 
@@ -650,16 +721,7 @@ class PhylotreeApplication extends Component {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
         <div style={{ display: "flex", justifyContent: "space-around" }}>
-          <div className="phylotree-application">
-            
-            {this._renderControls()}
-
-            <div className="search-container">
-              <input name="sequenceName" placeholder="Species Name"/>
-              <button>Search</button>
-            </div>
-
-          </div>{" "}
+          {this._renderControls()}
         </div>
 
         {this._renderTreeContainer()}

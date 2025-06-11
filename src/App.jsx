@@ -5,7 +5,6 @@ import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import FloatingChatManager from "./Chat/FloatingChatManager";
 import HaplotypeNetworkApp from "./HaplotypeNetwork/HaplotypeNetworkApp";
 import PhylotreeApplication from "./Phylotree/PhylotreeApplication";
-// import PhylotreeApp from "./PhylotreeRestructure/PhylotreeApp";
 import SequencealignmentAPP from "./Sequence alignment/SequencealignmentAPP";
 
 import "bootstrap/dist/css/bootstrap.min.css";

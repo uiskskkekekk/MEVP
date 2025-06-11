@@ -463,7 +463,8 @@ const Phylotree = (props) => {
     merged,
     onTreeReady,
     showLabels,
-    onDimensionsChange
+    onDimensionsChange,
+    highlightedNodes = new Set(),
   } = props;
 
   // Memoized tree creation and processing
@@ -573,6 +574,7 @@ const Phylotree = (props) => {
   const colorScale = getColorScale(processedTree, props.highlightBranches);
   const hiddenBranches = getHiddenBranches(processedTree, collapsedNodes);
   const internalNodes = collectInternalNodes(processedTree);
+  // const isHighlighted = highlightedNodes.has(link.target.unique_id);
 
   return (
     <g ref={svgRef} transform={props.transform}>
@@ -607,6 +609,8 @@ const Phylotree = (props) => {
             setTooltip={setTooltip}
             onClick={props.onBranchClick}
             isCollapsed={collapsedNodes?.has(link.target.unique_id)}
+            isHighlighted={props.highlightedNodes?.has(link.target.unique_id)}
+            searchTerm={props.searchTerm}
           />
         ))}
 
