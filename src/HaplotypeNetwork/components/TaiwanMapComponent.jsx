@@ -220,7 +220,7 @@ const TaiwanMapComponent = ({ genes, cityGeneData, geneColors, onSelectedGenesCh
       </div>
 
       {/* 控制面板區 */}
-      <div className="flex flex-column flex-gap-10">
+      <div className="flex flex-row flex-gap-10">
         <div className="gene-control-panel">
           <h4>選擇顯示基因：</h4>
           <input
