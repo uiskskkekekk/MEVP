@@ -1,6 +1,6 @@
 # MEVP
 
-A molecular evolution visualization platform
+A molecular evolution visualization platform. Included phylogenetic tree, sequence alignment, and haplotype network.
 
 ## Development
 
