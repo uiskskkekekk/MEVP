@@ -234,7 +234,8 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
             geneColors={geneColors}
             selectedGene={selectedGene}
             activeSimilarityGroup={activeSimilarityGroup}
-            onSelectedGenesChange={(selected) => setSelectedGenes(selected)}
+
+             onSelectedGenesChange={(selected) => setSelectedGenes(selected)} // ✅ 新增這行
           />
           <GeneSelector
             genes={genes}
@@ -244,25 +245,6 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
             geneColors={geneColors}
             setActiveSimilarityGroup={setActiveSimilarityGroup}
           />
-        </div>
-      )}
-
-      {/* 分頁控制：只在 taiwanMap 和 geneComponents 顯示 */}
-      {(activeSection === "taiwanMap" || activeSection === "geneComponents") && (
-        <div className="pagination">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            上一頁
-          </button>
-          <span> 第 {currentPage} 頁 / 共 {totalPages} 頁 </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            下一頁
-          </button>
         </div>
       )}
 
@@ -283,6 +265,25 @@ const HaplotypeNetworkApp = ({ initialFileContent = "" }) => {
             selectedGenes={selectedGenes} // 傳遞目前選中的多基因
             onSelectedGenesChange={setSelectedGenes} // 回調更新選中基因
           />
+        </div>
+      )}
+
+      {/* 分頁控制：只在 taiwanMap 和 geneComponents 顯示 */}
+      {(activeSection === "taiwanMap" || activeSection === "geneComponents") && (
+        <div className="pagination">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            上一頁
+          </button>
+          <span> 第 {currentPage} 頁 / 共 {totalPages} 頁 </span>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            下一頁
+          </button>
         </div>
       )}
 

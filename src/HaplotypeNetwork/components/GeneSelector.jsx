@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { FixedSizeList as List } from "react-window";
 import "../components/AppStyles.css";
 
+
 const GeneSelector = ({
   genes,
   selectedGene,
