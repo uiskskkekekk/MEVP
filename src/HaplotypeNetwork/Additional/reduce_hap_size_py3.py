@@ -9,7 +9,7 @@ Output all haplotypes using index
 import sys
 import csv
 
-if len(sys.argv) != 5:
+if len(sys.argv) != 6:
     print("Usage: python reduce_hap_size_py3.py <hap_info_file> <hap_fasta_file> <reduce_size> <csv_file>")
     sys.exit(1)
 
@@ -23,6 +23,7 @@ reduce_size = int(sys.argv[3])  # target number of reduced haplotypes, e.g., 30
 
 csv_file = sys.argv[4]          # all-tags.csv
 
+output_file = sys.argv[5]       # ___.reduce.fa
 
 # ---------- Extract unique location names from the first column of CSV ----------
 prefixes = ["xworm_", "ZpDL_", "CypDL_"]
@@ -92,51 +93,7 @@ print("✅ Loaded %d FASTA sequences" % len(hap_seqs))
 
 # ---------- Generate output ----------
 # Reduce haplotypes per location proportionally and write to output FASTA
-output_file = "Zpl.reduce.fa"
-output_count = 0
 
-with open(output_file, 'w') as out:
-    for loc in locations:
-        total = 0  # total number of reads for this location
-        reduce_dt = {}  # number of reads to keep for each hap_index
-        arry_hap_num = []     # list of counts
-        arry_hap_index = []   # list of hap_indices
-
-        # count total reads at this location
-        for hap_index in haplotypes:
-            key = "%s_%s" % (loc, hap_index)
-            count = hap_location_counts.get(key, 0)
-            total += count
-
-        # calculate number of reads to retain per hap_index proportionally
-        for hap_index in haplotypes:
-            key = "%s_%s" % (loc, hap_index)
-            count = hap_location_counts.get(key, 0)
-            if count > 0 and total > 0:
-                reduce_count = int((float(count) / total) * reduce_size)
-                if reduce_count > 0:
-                    reduce_dt[key] = reduce_count
-                    arry_hap_num.append(reduce_count)
-                    arry_hap_index.append(hap_index)
-
-        # keep top N hap_indices with most reads until total reaches reduce_size
-        keep_hap_index = []
-        keep_hap_num = []
-        final_reduce_size = 0
-
-        while arry_hap_num and final_reduce_size < reduce_size:
-            max_val = max(arry_hap_num)
-            idx = arry_hap_num.index(max_val)
-            hap_index = arry_hap_index[idx]
-
-            final_reduce_size += max_val
-            keep_hap_index.append(hap_index)
-            keep_hap_num.append(max_val)
-
-            del arry_hap_num[idx]
-            del arry_hap_index[idx]
-
-        # write representative haplotype sequences for this location
 output_entries = []
 
 for loc in locations:
@@ -187,16 +144,14 @@ for loc in locations:
             for i in range(num):
                 output_entries.append((loc, int(hap_index), i, hap_seqs[hap_index]))  # sort by loc, int(hap_index), i
 
-
 # sort output entries: loc (alpha), hap_index (numeric), i (numeric)
 output_entries.sort()
 
+output_count = 0
 with open(output_file, 'w') as out:
     for loc, hap_index, i, seq in output_entries:
         out.write(">%s_%d_%d\n%s\n" % (loc, hap_index, i, seq))
         output_count += 1
-
-
 
 print("🎉 Done! Output %d representative haplotypes to %s" % (output_count, output_file))
 
