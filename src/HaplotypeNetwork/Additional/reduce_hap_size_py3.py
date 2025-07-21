@@ -7,7 +7,7 @@ Output all haplotypes using index
 """
 
 import sys
-import csv
+import pandas as pd
 
 if len(sys.argv) != 6:
     print("Usage: python reduce_hap_size_py3.py <hap_info_file> <hap_fasta_file> <reduce_size> <csv_file>")
@@ -21,28 +21,24 @@ fasta_file_name = sys.argv[2]   # Zpl.dup.tab  // Zp-ASVs.msa.tab, aligned file
 
 reduce_size = int(sys.argv[3])  # target number of reduced haplotypes, e.g., 30
 
-csv_file = sys.argv[4]          # all-tags.csv
+excel_file =  sys.argv[4]          # eDNA樣站.xlsx
 
 output_file = sys.argv[5]       # ___.reduce.fa
 
-# ---------- Extract unique location names from the first column of CSV ----------
-prefixes = ["xworm_", "ZpDL_", "CypDL_"]
-locations = set()  # use set to remove duplicates automatically
+# ---------- Extract unique location names from "eDNA樣站(2).xlsx" ----------
+excel_file = 'eDNA樣站(2).xlsx'  # 記得路徑要正確
+df = pd.read_excel(excel_file)
 
-with open(csv_file, newline='', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    next(reader)  # skip header
-    for row in reader:
-        if row and isinstance(row[0], str):
-            val = row[0].strip()
-            for prefix in prefixes:
-                if val.startswith(prefix):
-                    clean_location = val.replace(prefix, "")
-                    locations.add(clean_location)
-                    break
+# 確保欄位名稱正確（可能有前後空白）
+df.columns = df.columns.str.strip()
 
-locations = list(locations)
-print("✅ Found %d unique locations from CSV: %s" % (len(locations), locations))
+if 'eDNA_ID' not in df.columns:
+    print("❌ 找不到 'eDNA_ID' 欄位，請確認 Excel 檔案格式")
+    sys.exit(1)
+
+locations = sorted(df['eDNA_ID'].dropna().astype(str).str.strip().unique().tolist())
+print("✅ Found %d unique locations from Excel (eDNA_ID): %s" % (len(locations), locations))
+
 
 # ---------- Parse hap info list file ----------
 # Parse haplotype distribution from sample data
@@ -153,5 +149,6 @@ with open(output_file, 'w') as out:
         out.write(">%s_%d_%d\n%s\n" % (loc, hap_index, i, seq))
         output_count += 1
 
-print("🎉 Done! Output %d representative haplotypes to %s" % (output_count, output_file))
+print("🎉 Done! Output %d representative haplotypes to %s" % (output_count, output_file)    )
+
 
