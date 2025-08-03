@@ -1,6 +1,7 @@
 import { useState } from "react";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import * as XLSX from "xlsx";
 
 import FloatingChatManager from "./Chat/FloatingChatManager";
 import HaplotypeNetworkApp from "./HaplotypeNetwork/HaplotypeNetworkApp";
@@ -21,20 +22,25 @@ function DropdownLink(props) {
 function Navbar({
   onPhylotreeFileChange,
   onHaplotypeFileChange,
+  onEDnaSampleChange,
+  onEDnaTagsChange,
   phylotreeFileName,
   haplotypeFileName,
+  eDnaSampleFileName,
+  eDnaTagsFileName,
 }) {
   return (
     <nav className="navbar">
       <img src="/MEVP_logo.png" alt="MEVP Logo" className="navbar-logo" />
       <NavDropdown title="Tools">
         <DropdownLink to="/" header="Phylotree" />
-        <DropdownLink to="/sequence-alignment" header="Sequence Alignment" /> 
+        <DropdownLink to="/sequence-alignment" header="Sequence Alignment" />
         <DropdownLink to="/haplotype" header="Haplotype Network" />
       </NavDropdown>
 
       <div className="file-upload">
         <NavDropdown title="File">
+          {/* Upload Newick */}
           <NavDropdown.Item as="div">
             <label className="custom-upload-label">
               {phylotreeFileName ? (
@@ -54,6 +60,7 @@ function Navbar({
             </label>
           </NavDropdown.Item>
 
+          {/* Upload Fasta */}
           <NavDropdown.Item as="div">
             <label className="custom-upload-label">
               {haplotypeFileName ? (
@@ -72,6 +79,46 @@ function Navbar({
               />
             </label>
           </NavDropdown.Item>
+
+          {/* Upload eDNA Sample Station (XLSX) */}
+          <NavDropdown.Item as="div">
+            <label className="custom-upload-label">
+              {eDnaSampleFileName ? (
+                <>
+                  Sample Station:{" "}
+                  <span className="file-name">{eDnaSampleFileName}</span>
+                </>
+              ) : (
+                "Upload eDNA Sample Station (XLSX)"
+              )}
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={onEDnaSampleChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          </NavDropdown.Item>
+
+          {/* Upload eDNA Tags (XLSX) */}
+          <NavDropdown.Item as="div">
+            <label className="custom-upload-label">
+              {eDnaTagsFileName ? (
+                <>
+                  Tags File:{" "}
+                  <span className="file-name">{eDnaTagsFileName}</span>
+                </>
+              ) : (
+                "Upload eDNA_tags__miseq-PE300 (XLSX)"
+              )}
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={onEDnaTagsChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          </NavDropdown.Item>
         </NavDropdown>
       </div>
     </nav>
@@ -83,6 +130,11 @@ function App() {
   const [haplotypeContent, setHaplotypeContent] = useState("");
   const [phylotreeFileName, setPhylotreeFileName] = useState("");
   const [haplotypeFileName, setHaplotypeFileName] = useState("");
+
+  const [eDnaSampleContent, setEDnaSampleContent] = useState("");
+  const [eDnaTagsContent, setEDnaTagsContent] = useState("");
+  const [eDnaSampleFileName, setEDnaSampleFileName] = useState("");
+  const [eDnaTagsFileName, setEDnaTagsFileName] = useState("");
 
   const handlePhylotreeFileChange = (event) => {
     const file = event.target.files[0];
@@ -108,14 +160,58 @@ function App() {
     reader.readAsText(file);
   };
 
+
+// 解析 eDNA Sample Station
+const handleEDnaSampleChange = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  setEDnaSampleFileName(file.name);
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    setEDnaSampleContent(jsonData); 
+  };
+  reader.readAsArrayBuffer(file); 
+};
+
+// 解析 eDNA Tags
+const handleEDnaTagsChange = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  setEDnaTagsFileName(file.name);
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    setEDnaTagsContent(jsonData); 
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+
   return (
     <BrowserRouter>
       <div>
         <Navbar
           onPhylotreeFileChange={handlePhylotreeFileChange}
           onHaplotypeFileChange={handleHaplotypeFileChange}
+          onEDnaSampleChange={handleEDnaSampleChange}
+          onEDnaTagsChange={handleEDnaTagsChange}
           phylotreeFileName={phylotreeFileName}
           haplotypeFileName={haplotypeFileName}
+          eDnaSampleFileName={eDnaSampleFileName}
+          eDnaTagsFileName={eDnaTagsFileName}
         />
         <div className="container-fluid" id="workspace-container">
           <Routes>
@@ -130,12 +226,19 @@ function App() {
             <Route
               path="/haplotype"
               element={
-                <HaplotypeNetworkApp initialFileContent={haplotypeContent} />
+                <HaplotypeNetworkApp
+                  initialFileContent={haplotypeContent}
+                  initialFileName={haplotypeFileName}        
+                  eDnaSampleContent={eDnaSampleContent}
+                  eDnaTagsContent={eDnaTagsContent}
+                />
               }
             />
             <Route
               path="/sequence-alignment"
-              element={<SequencealignmentAPP haplotypeContent={haplotypeContent} />}
+              element={
+                <SequencealignmentAPP haplotypeContent={haplotypeContent} />
+              }
             />
           </Routes>
 
