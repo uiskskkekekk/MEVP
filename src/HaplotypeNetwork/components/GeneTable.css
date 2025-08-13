@@ -1,0 +1,147 @@
+/* 外層容器，啟用水平滾動 */
+.gene-table-container {
+  width: 1200px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.gene-table-wrapper {
+  min-width: 120px;
+  overflow-x: auto;
+}
+
+/* 表格展開寬度，必要才能顯示捲軸 */
+.gene-table {
+  border-collapse: collapse;
+  
+  min-width: max-content;
+}
+
+/* 基本格線 */
+.gene-table th,
+.gene-table td {
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ========================== */
+/* 🎯 詳細資料表固定第一列和第一欄 */
+/* ========================== */
+.view-detail .gene-table thead th {
+    
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8f8f8;
+}
+
+.view-detail .gene-table td:first-child,
+.view-detail .gene-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 3;
+  text-align: left;
+  min-width: 180px;
+}
+
+/* ========================== */
+/* 🎯 數量表固定前兩欄 */
+/* ========================== */
+.view-count .gene-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f0f0f0;
+}
+
+.view-count .gene-table th:nth-child(1),
+.view-count .gene-table th:nth-child(2),
+.view-count .gene-table td:nth-child(1),
+.view-count .gene-table td:nth-child(2) {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 3;
+  min-width: 130px;
+  text-align: left;
+}
+
+/* 小顏色方塊 */
+.color-box {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border: 1px solid #999;
+}
+
+
+.gene-table td input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+}
+
+.gene-table td input[type="number"] {
+  width: 60px;
+  padding: 5px;
+  text-align: center;
+}
+
+.gene-table th, .gene-table td {
+  padding: 8px 12px;
+}
+
+
+.gene-table th:first-child,
+.gene-table td:first-child {
+  width: 10px;  /* 設定勾選框那一列的寬度 */
+  padding: 5px; /* 可以調整內邊距來改變欄位高度 */
+}
+
+
+
+/* ========== 總數量表：固定列欄 + 可捲動 ========== */
+.view-total .gene-table-wrapper {
+  max-height: 500px;
+  overflow: auto;  /* 同時支援水平與垂直滾動 */
+}
+
+/* 固定表頭（第一列） */
+.view-total .gene-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #edebeb;
+}
+
+/* 固定第一欄 */
+.view-total .gene-table td:first-child,
+.view-total .gene-table th:first-child {
+  position: sticky;
+  left: 0;
+  
+  background: #d7d4d4;
+  min-width: 100px;
+  text-align: left;
+}
+
+.view-total .gene-table-wrapper {
+  max-height: 500px;
+  overflow: auto;
+}
+
+
+.color-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-right: 6px;
+  border: 1px solid #888;
+}

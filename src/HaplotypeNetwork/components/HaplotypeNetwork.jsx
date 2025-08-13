@@ -16,14 +16,16 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
   const [data, setData] = useState(null);
   const [cityColors, setCityColors] = useState({});
   const [maxDistance, setMaxDistance] = useState(2);
+  const [apiPath, setApiPath] = useState("HaplotypeNetwork");
 
   // 載入資料
   useEffect(() => {
-    fetch("http://localhost:3000/HaplotypeNetwork")
+    setData(null); // 清空，顯示 loading
+    fetch(`http://localhost:3000/${apiPath}`)
       .then((res) => res.json())
       .then(setData)
       .catch(() => setData({ error: true }));
-  }, []);
+  }, [apiPath]);
 
   // 初始化圖表
   useEffect(() => {
@@ -64,11 +66,11 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           .forceLink(data.edges)
           .id((d) => d.id)
           .distance((d) => {
-            if (d.source.groupId === d.target.groupId) return 50;
+            if (d.source.groupId === d.target.groupId) return 5;
             const dist = d.distance;
             if (dist <= 5) return 100;
-            if (dist <= 20) return 200;
-            return 300;
+            if (dist <= 20) return 20;
+            return 30;
           })
       )
       .force("charge", d3.forceManyBody().strength(-60))
@@ -81,8 +83,10 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .selectAll("line")
       .data(data.edges)
       .join("line")
-      .attr("stroke", "#bbb")
-      .attr("stroke-width", 1.5);
+      .attr("stroke", (d) => d.color || "#bbb")  // 使用後端提供的顏色
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", (d) => d.style === "dotted" ? "2,2" : null)  // 設置虛線樣式
+      .attr("stroke-linecap", "round");  // 線條兩端圓角
 
     const edgeLabels = linkGroup
       .selectAll("text")
@@ -134,7 +138,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           .append("circle")
           .attr("r", radius)
           .attr("fill", "#ccc")
-          .attr("stroke", groupColor)
+          .attr("stroke", "#000")
           .attr("stroke-width", borderWidth);
         return;
       }
@@ -146,7 +150,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         .join("path")
         .attr("d", arc.innerRadius(0).outerRadius(radius))
         .attr("fill", (arcData) => cityColorMap[arcData.data[0]] || "#999")
-        .attr("stroke", groupColor)
+        .attr("stroke", "#000")
         .attr("stroke-width", borderWidth);
     });
 
@@ -211,17 +215,35 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       <div>
         <h2 style={{ margin: "10px 0" }}>Haplotype Network</h2>
         {!data && <p>Loading...</p>}
-        {data?.error && <p style={{ color: "red" }}>無法載入資料</p>}
+        {data?.error && <p style={{ color: "red" }}>Unable to load data</p>}
 
         {/* 縮放控制按鈕 */}
         <div style={{ margin: "10px 0" }}>
           <button className="button" style={{ backgroundColor: "#1976d2", color: "#fff", marginRight: 10 }} onClick={() => handleZoom("in")}>
-            🔍 放大
+            🔍 enlarge
           </button>
           <button className="button" style={{ backgroundColor: "#424242", color: "#fff" }} onClick={() => handleZoom("out")}>
-            🔎 縮小
+            🔎 zoom out
           </button>
         </div>
+
+        <div style={{ marginBottom: 10 }}>
+  <button
+    className="button"
+    style={{ marginRight: 10, backgroundColor: apiPath === "HaplotypeNetwork" ? "#007bff" : "#ccc", color: "#fff" }}
+    onClick={() => setApiPath("HaplotypeNetwork")}
+  >
+    All information
+  </button>
+  <button
+    className="button"
+    style={{ backgroundColor: apiPath === "SimplifiedHaplotypeNetwork" ? "#007bff" : "#ccc", color: "#fff" }}
+    onClick={() => setApiPath("SimplifiedHaplotypeNetwork")}
+  >
+    reduce
+  </button>
+</div>
+
 
         <svg
           ref={svgRef}
@@ -247,7 +269,7 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
           height: "fit-content",
         }}>
-          <h3 style={{ marginTop: 0 }}>城市圖例</h3>
+          <h3 style={{ marginTop: 0 }}>city legend</h3>
           <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
             {Object.entries(cityColors).map(([city, color]) => (
               <li key={city} style={{ marginBottom: 6, display: "flex", alignItems: "center" }}>
@@ -257,13 +279,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
             ))}
           </ul>
         </div>
-      )}
-
-      {/* 原始資料 JSON 顯示 */}
-      {data && !data.error && (
-        <pre style={{ maxHeight: 800, overflow: "auto", background: "#eee", padding: 10 }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
       )}
     </div>
   );

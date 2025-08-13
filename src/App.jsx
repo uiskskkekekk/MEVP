@@ -22,10 +22,12 @@ function DropdownLink(props) {
 function Navbar({
   onPhylotreeFileChange,
   onHaplotypeFileChange,
+  haplotypeFiles,
+  selectedHaplotypeIndex,
+  setSelectedHaplotypeIndex,
   onEDnaSampleChange,
   onEDnaTagsChange,
   phylotreeFileName,
-  haplotypeFileName,
   eDnaSampleFileName,
   eDnaTagsFileName,
 }) {
@@ -60,25 +62,39 @@ function Navbar({
             </label>
           </NavDropdown.Item>
 
-          {/* Upload Fasta */}
+          {/* Upload Fasta (Multiple) */}
           <NavDropdown.Item as="div">
             <label className="custom-upload-label">
-              {haplotypeFileName ? (
-                <>
-                  Current Fasta:{" "}
-                  <span className="file-name">{haplotypeFileName}</span>
-                </>
-              ) : (
-                "Upload Fasta"
-              )}
+              {haplotypeFiles.length > 0
+                ? `Fasta Files: ${haplotypeFiles.length} uploaded`
+                : " Upload Fasta (multiple)"}
               <input
                 type="file"
                 accept=".fa,.fasta,.txt"
+                multiple
                 onChange={onHaplotypeFileChange}
                 style={{ display: "none" }}
               />
             </label>
           </NavDropdown.Item>
+
+          {/* Select which fasta file to use */}
+          {haplotypeFiles.length > 0 && (
+            <NavDropdown
+              title={
+                haplotypeFiles[selectedHaplotypeIndex]?.name || "Select Fasta"}                                   
+                style={{ marginLeft: "50px" }} 
+            >
+              {haplotypeFiles.map((file, idx) => (
+                <NavDropdown.Item
+                  key={idx}
+                  onClick={() => setSelectedHaplotypeIndex(idx)}
+                >
+                  {file.name}
+                </NavDropdown.Item>
+              ))}
+            </NavDropdown>
+          )}
 
           {/* Upload eDNA Sample Station (XLSX) */}
           <NavDropdown.Item as="div">
@@ -127,15 +143,17 @@ function Navbar({
 
 function App() {
   const [phylotreeContent, setPhylotreeContent] = useState("");
-  const [haplotypeContent, setHaplotypeContent] = useState("");
   const [phylotreeFileName, setPhylotreeFileName] = useState("");
-  const [haplotypeFileName, setHaplotypeFileName] = useState("");
+
+  const [haplotypeFiles, setHaplotypeFiles] = useState([]); // [{name, content}]
+  const [selectedHaplotypeIndex, setSelectedHaplotypeIndex] = useState(null);
 
   const [eDnaSampleContent, setEDnaSampleContent] = useState("");
   const [eDnaTagsContent, setEDnaTagsContent] = useState("");
   const [eDnaSampleFileName, setEDnaSampleFileName] = useState("");
   const [eDnaTagsFileName, setEDnaTagsFileName] = useState("");
 
+  // Handle Newick
   const handlePhylotreeFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -148,57 +166,64 @@ function App() {
     reader.readAsText(file);
   };
 
+  // Handle multiple fasta upload
   const handleHaplotypeFileChange = (event) => {
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setHaplotypeFiles((prev) => [
+          ...prev,
+          { name: file.name, content: e.target.result },
+        ]);
+
+        if (selectedHaplotypeIndex === null) {
+          setSelectedHaplotypeIndex(0);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  // Parse eDNA Sample Station
+  const handleEDnaSampleChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    setEDnaSampleFileName(file.name);
 
-    setHaplotypeFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
-      setHaplotypeContent(e.target.result);
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      setEDnaSampleContent(jsonData);
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
+  // Parse eDNA Tags
+  const handleEDnaTagsChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    setEDnaTagsFileName(file.name);
 
-// 解析 eDNA Sample Station
-const handleEDnaSampleChange = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  setEDnaSampleFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-    setEDnaSampleContent(jsonData); 
+      setEDnaTagsContent(jsonData);
+    };
+    reader.readAsArrayBuffer(file);
   };
-  reader.readAsArrayBuffer(file); 
-};
-
-// 解析 eDNA Tags
-const handleEDnaTagsChange = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  setEDnaTagsFileName(file.name);
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-    setEDnaTagsContent(jsonData); 
-  };
-  reader.readAsArrayBuffer(file);
-};
-
 
   return (
     <BrowserRouter>
@@ -206,10 +231,12 @@ const handleEDnaTagsChange = (event) => {
         <Navbar
           onPhylotreeFileChange={handlePhylotreeFileChange}
           onHaplotypeFileChange={handleHaplotypeFileChange}
+          haplotypeFiles={haplotypeFiles}
+          selectedHaplotypeIndex={selectedHaplotypeIndex}
+          setSelectedHaplotypeIndex={setSelectedHaplotypeIndex}
           onEDnaSampleChange={handleEDnaSampleChange}
           onEDnaTagsChange={handleEDnaTagsChange}
           phylotreeFileName={phylotreeFileName}
-          haplotypeFileName={haplotypeFileName}
           eDnaSampleFileName={eDnaSampleFileName}
           eDnaTagsFileName={eDnaTagsFileName}
         />
@@ -227,8 +254,16 @@ const handleEDnaTagsChange = (event) => {
               path="/haplotype"
               element={
                 <HaplotypeNetworkApp
-                  initialFileContent={haplotypeContent}
-                  initialFileName={haplotypeFileName}        
+                  initialFileContent={
+                    selectedHaplotypeIndex !== null
+                      ? haplotypeFiles[selectedHaplotypeIndex].content
+                      : ""
+                  }
+                  initialFileName={
+                    selectedHaplotypeIndex !== null
+                      ? haplotypeFiles[selectedHaplotypeIndex].name
+                      : ""
+                  }
                   eDnaSampleContent={eDnaSampleContent}
                   eDnaTagsContent={eDnaTagsContent}
                 />
@@ -237,12 +272,18 @@ const handleEDnaTagsChange = (event) => {
             <Route
               path="/sequence-alignment"
               element={
-                <SequencealignmentAPP haplotypeContent={haplotypeContent} />
+                <SequencealignmentAPP
+                  haplotypeContent={
+                    selectedHaplotypeIndex !== null
+                      ? haplotypeFiles[selectedHaplotypeIndex].content
+                      : ""
+                  }
+                />
               }
             />
           </Routes>
 
-          {/* 浮動聊天管理器 */}
+          {/* Floating Chat Manager */}
           <FloatingChatManager />
         </div>
       </div>

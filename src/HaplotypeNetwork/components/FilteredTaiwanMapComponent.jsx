@@ -1,8 +1,6 @@
 import React, { useMemo, memo, useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import TaiwanMapImage from "../../assets/haplotype/TW.png";
-import { cityCoordinates } from "../data/cityCoordinates";
-import { cityCoordinates2 } from "../data/cityCoordinates2";
 import "../components/AppStyles.css";
 
 const areEqual = (prevProps, nextProps) => {
@@ -27,7 +25,9 @@ const areEqual = (prevProps, nextProps) => {
 
 const CityPieChart = memo(({ city, chartData, geneColors, position }) => {
   const { data, totalCount } = chartData;
-  const outerRadius = Math.min(10 + Math.floor(totalCount / 10) * 10, 50);
+  const outerRadius = Math.min(5 + Math.floor(totalCount / 5) * 5, 25);
+
+  if (!position?.cx || !position?.cy) return null;
 
   return (
     <div
@@ -99,13 +99,11 @@ const FilteredTaiwanMapComponent = ({
 
   const filteredCityGeneData = useMemo(() => {
     const result = {};
-    for (const [city, genes] of Object.entries(cityGeneData)) {
-      if (!Array.isArray(genes)) continue;
-
+    for (const [city, { genes, coordinates }] of Object.entries(cityGeneData)) {
       const data = genes.filter((g) => selectedGenes.includes(g.name));
       if (data.length > 0) {
         const totalCount = data.reduce((sum, g) => sum + g.value, 0);
-        result[city] = { data, totalCount };
+        result[city] = { data, totalCount, coordinates };
       }
     }
     return result;
@@ -123,87 +121,36 @@ const FilteredTaiwanMapComponent = ({
 
   return (
     <div className="flex flex-gap-10">
-      <div className="map-container" onMouseMove={handleMouseMove}>
-        <img src={TaiwanMapImage} alt="Taiwan Map" width={400} height={600} />
-        <svg
-          width={400}
-          height={600}
-          style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
-        >
-          <defs>
-            <marker
-              id="arrow"
-              markerWidth="6"
-              markerHeight="6"
-              refX="5"
-              refY="3"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path d="M0,0 L0,6 L6,3 z" fill="gray" />
-            </marker>
-          </defs>
-          {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
-            const outerRadius = Math.min(10 + Math.floor(chartData.totalCount / 10) * 10, 50);
-            const threshold = 20;
-            const from = cityCoordinates[city];
-            const to = (outerRadius > threshold ? cityCoordinates2[city] : cityCoordinates[city]) || from;
-
-            if (from && to && (from.cx !== to.cx || from.cy !== to.cy)) {
-              return (
-                <line
-                  key={`line-${city}`}
-                  x1={from.cx}
-                  y1={from.cy}
-                  x2={to.cx}
-                  y2={to.cy}
-                  stroke="gray"
-                  strokeWidth={1.5}
-                  strokeDasharray="4,4"
-                  markerEnd="url(#arrow)"
-                />
-              );
-            }
-            return null;
-          })}
-        </svg>
-
-        {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
-          const outerRadius = Math.min(10 + Math.floor(chartData.totalCount / 10) * 10, 50);
-          const threshold = 20;
-          const from = cityCoordinates[city];
-          const to = (outerRadius > threshold ? cityCoordinates2[city] : cityCoordinates[city]) || from;
-
-          return (
-            <CityPieChart
-              key={city}
-              city={city}
-              chartData={chartData}
-              geneColors={geneColors}
-              position={to}
-            />
-          );
-        })}
-
+      <div className="map-containerFiltered" onMouseMove={handleMouseMove}>
+        <img src={TaiwanMapImage} alt="Taiwan Map" width={465} height={658.5} />
+        {Object.entries(filteredCityGeneData).map(([city, chartData]) => (
+          <CityPieChart
+            key={city}
+            city={city}
+            chartData={chartData}
+            geneColors={geneColors}
+            position={chartData.coordinates}
+          />
+        ))}
         <div className="coord-label">
-          經度: {latLon.lon}°E<br />
-          緯度: {latLon.lat}°N
+          longitude: {latLon.lon}°E<br />
+          latitude: {latLon.lat}°N
         </div>
       </div>
 
-      <div className="flex flex-column" style={{ width: "700px" }}>
+      <div className="flex flex-column" style={{ width: "300px" }}>
         <div style={{ marginBottom: "8px" }}>
-          <h4>選擇顯示基因：</h4>
+          <h4>Select display genes：</h4>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="搜尋基因名稱"
+            placeholder="Search"
             className="search-input"
           />
           <div className="flex flex-gap-5">
-            <button onClick={handleSelectAll}>全選</button>
-            <button onClick={handleClearAll}>清除選擇</button>
+            <button onClick={handleSelectAll}>all</button>
+            <button onClick={handleClearAll}>Clear</button>
           </div>
         </div>
 
@@ -236,14 +183,14 @@ const FilteredTaiwanMapComponent = ({
 
         <div className="pagination-controls">
           <button onClick={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
-            上一頁
+            Previous page
           </button>
-          <span>第 {currentPage + 1} 頁 / 共 {totalPages} 頁</span>
+          <span> {currentPage + 1}  /  {totalPages} </span>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={currentPage >= totalPages - 1}
           >
-            下一頁
+            Next page
           </button>
         </div>
       </div>

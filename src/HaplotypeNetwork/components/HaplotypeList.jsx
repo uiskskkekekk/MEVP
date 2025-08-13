@@ -3,16 +3,26 @@ import React from "react";
 
 const HaplotypeList = ({ paginatedGenes = [], geneColors = {} }) => {
   return (
-    <div>
-      <h2>Haplotype List</h2>
-      <ul>
-        {paginatedGenes.map((gene, index) => (
-          <li key={index} style={{ color: geneColors[gene.name] || "black" }}>
-            {gene.name}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <div
+  style={{
+    marginTop: "210px" // 整個列表往下移動 30px
+  }}
+>
+  <h2>Haplotype List</h2>
+  <ul>
+    {paginatedGenes.map((gene, index) => (
+      <li
+        key={index}
+        style={{
+          color: geneColors[gene.name] || "black"
+        }}
+      >
+        {gene.name}
+      </li>
+    ))}
+  </ul>
+</div>
+
   );
 };
 

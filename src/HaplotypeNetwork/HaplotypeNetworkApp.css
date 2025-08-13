@@ -59,5 +59,50 @@
 
 .main-content {
   display: flex;
+  flex-direction: column;
   gap: 20px;
+}
+
+.flex-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+
+
+.gene-table {
+  width: 100%; /* 确保 GeneTable 宽度为 100% */
+}
+
+@media (max-width: 768px) {
+  .flex-container {
+    flex-direction: column; /* 在小屏幕上换成垂直排列 */
+  }
+
+  .right-panel {
+    width: 10%; /* 让右侧面板在小屏幕上宽度占满 */
+    margin-left: 0;
+  }
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column; /* 垂直排列 tables-row 和 pagination */
+  gap: 10px;
+}
+
+.tables-row {
+  display: flex;
+  flex-direction: row; /* 水平排列 HaplotypeList 和 GeneTable */
+  gap: 20px;
+  align-items: flex-start;
+}
+
+
+
+.pagination {
+  display: flex;
+  justify-content: center; /* 置中按鈕 */
+  gap: 10px;
 }
