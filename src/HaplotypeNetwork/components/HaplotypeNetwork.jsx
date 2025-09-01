@@ -5,18 +5,12 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import "../components/AppStyles.css";
 
-const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
+const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
   const svgRef = useRef();
-  const zoomRef = useRef({
-    zoomBehavior: null,
-    group: null,
-    transform: d3.zoomIdentity,
-  });
-
   const [data, setData] = useState(null);
   const [cityColors, setCityColors] = useState({});
-  const [maxDistance, setMaxDistance] = useState(2);
   const [apiPath, setApiPath] = useState("HaplotypeNetwork");
+  const [scaleFactor, setScaleFactor] = useState(1); // 控制節點與距離的縮放
 
   // 載入資料
   useEffect(() => {
@@ -31,31 +25,40 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
   useEffect(() => {
     if (!data?.nodes || !data?.edges) return;
 
-    const validNodes = data.nodes.filter((d) => typeof d.count === "number" && d.count > 0);
+    const validNodes = data.nodes.filter(
+      (d) => typeof d.count === "number" && d.count > 0
+    );
     if (!validNodes.length) return;
 
     const svg = d3.select(svgRef.current).attr("cursor", "grab");
     svg.selectAll("*").remove();
 
     const g = svg.append("g").attr("class", "zoom-group");
-    zoomRef.current.group = g;
 
     // 城市顏色分配
     const allCities = new Set();
     validNodes.forEach((node) => {
-      if (node.cities) Object.keys(node.cities).forEach((c) => allCities.add(c));
+      if (node.cities)
+        Object.keys(node.cities).forEach((c) => allCities.add(c));
     });
     const cityList = Array.from(allCities);
-    const cityColorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(cityList);
+    const cityColorScale = d3
+      .scaleOrdinal(d3.schemeCategory10)
+      .domain(cityList);
     const cityColorMap = {};
     cityList.forEach((city) => (cityColorMap[city] = cityColorScale(city)));
     setCityColors(cityColorMap);
 
     // 群組顏色 + 節點半徑
     const groupIds = Array.from(new Set(validNodes.map((d) => d.groupId)));
-    const groupColorScale = d3.scaleOrdinal(d3.schemeTableau10).domain(groupIds);
+    const groupColorScale = d3
+      .scaleOrdinal(d3.schemeTableau10)
+      .domain(groupIds);
     const maxCount = d3.max(validNodes, (d) => d.count);
-    const r = d3.scaleSqrt().domain([1, maxCount || 1]).range([10, 30]);
+    const r = d3
+      .scaleSqrt()
+      .domain([1, maxCount || 1])
+      .range([10 * scaleFactor, 30 * scaleFactor]); // 半徑隨 scaleFactor 改變
 
     // 力導向模擬
     const sim = d3
@@ -66,16 +69,23 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
           .forceLink(data.edges)
           .id((d) => d.id)
           .distance((d) => {
-            if (d.source.groupId === d.target.groupId) return 5;
+            if (d.source.groupId === d.target.groupId)
+              return 5 * scaleFactor;
             const dist = d.distance;
-            if (dist <= 5) return 100;
-            if (dist <= 20) return 20;
-            return 30;
+            if (dist <= 0) return 50 * scaleFactor;
+            if (dist <= 1) return 100 * scaleFactor;
+            if (dist <= 2) return 200 * scaleFactor;
+            if (dist <= 3) return 300 * scaleFactor;
+            if (dist <= 20) return 20 * scaleFactor;
+            return 30 * scaleFactor;
           })
       )
       .force("charge", d3.forceManyBody().strength(-60))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius((d) => r(d.count) + 8));
+      .force(
+        "collide",
+        d3.forceCollide().radius((d) => r(d.count) + 8 * scaleFactor)
+      );
 
     // 繪製邊線與距離文字
     const linkGroup = g.append("g").attr("class", "links");
@@ -83,10 +93,12 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       .selectAll("line")
       .data(data.edges)
       .join("line")
-      .attr("stroke", (d) => d.color || "#bbb")  // 使用後端提供的顏色
+      .attr("stroke", (d) => d.color || "#bbb")
       .attr("stroke-width", 1.5)
-      .attr("stroke-dasharray", (d) => d.style === "dotted" ? "2,2" : null)  // 設置虛線樣式
-      .attr("stroke-linecap", "round");  // 線條兩端圓角
+      .attr("stroke-dasharray", (d) =>
+        d.style === "dotted" ? "2,2" : null
+      )
+      .attr("stroke-linecap", "round");
 
     const edgeLabels = linkGroup
       .selectAll("text")
@@ -130,7 +142,6 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       const radius = r(d.count);
       const entries = d.cities ? Object.entries(d.cities) : [];
 
-      const groupColor = groupColorScale(d.groupId || "default");
       const borderWidth = d.isRepresentative ? 4 : 1.5;
 
       if (!entries.length) {
@@ -149,7 +160,10 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
         .data(arcs)
         .join("path")
         .attr("d", arc.innerRadius(0).outerRadius(radius))
-        .attr("fill", (arcData) => cityColorMap[arcData.data[0]] || "#999")
+        .attr(
+          "fill",
+          (arcData) => cityColorMap[arcData.data[0]] || "#999"
+        )
         .attr("stroke", "#000")
         .attr("stroke-width", borderWidth);
     });
@@ -157,7 +171,14 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
     // tooltip 與 label
     node
       .append("title")
-      .text((d) => `ID: ${d.id}\nCount: ${d.count}\n${Object.entries(d.cities || {}).map(([c, n]) => `${c}: ${n}`).join("\n")}`);
+      .text(
+        (d) =>
+          `ID: ${d.id}\nCount: ${d.count}\n${Object.entries(
+            d.cities || {}
+          )
+            .map(([c, n]) => `${c}: ${n}`)
+            .join("\n")}`
+      );
 
     node
       .append("text")
@@ -183,31 +204,14 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
 
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
     });
-
-    // 滑鼠縮放行為
-    const zoomBehavior = d3.zoom()
-      .filter(() => false)
-      .scaleExtent([0.1, 10])
-      .on("zoom", (event) => {
-        zoomRef.current.group.attr("transform", event.transform);
-        zoomRef.current.transform = event.transform;
-      });
-
-    svg.call(zoomBehavior);
-    zoomRef.current.zoomBehavior = zoomBehavior;
-    zoomRef.current.transform = d3.zoomIdentity;
-  }, [data, width, height]);
+  }, [data, width, height, scaleFactor]); // scaleFactor 改變時重新渲染
 
   // 手動縮放控制
-  const handleZoom = (dir) => {
-    const { zoomBehavior, transform } = zoomRef.current;
-    if (!zoomBehavior) return;
-
-    const svg = d3.select(svgRef.current);
-    const next = dir === "in" ? transform.scale(1.2) : transform.scale(0.8);
-
-    svg.transition().duration(300).call(zoomBehavior.transform, next);
-    zoomRef.current.transform = next;
+  const handleResize = (dir) => {
+    setScaleFactor((prev) => {
+      const next = dir === "in" ? prev * 1.2 : prev * 0.8;
+      return Math.max(0.2, Math.min(5, next)); // 限制縮放範圍
+    });
   };
 
   return (
@@ -215,35 +219,59 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
       <div>
         <h2 style={{ margin: "10px 0" }}>Haplotype Network</h2>
         {!data && <p>Loading...</p>}
-        {data?.error && <p style={{ color: "red" }}>Unable to load data</p>}
+        {data?.error && (
+          <p style={{ color: "red" }}>Unable to load data</p>
+        )}
 
-        {/* 縮放控制按鈕 */}
+        {/* 節點大小與距離縮放控制按鈕 */}
         <div style={{ margin: "10px 0" }}>
-          <button className="button" style={{ backgroundColor: "#1976d2", color: "#fff", marginRight: 10 }} onClick={() => handleZoom("in")}>
-            🔍 enlarge
+          <button
+            className="button"
+            style={{
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              marginRight: 10,
+            }}
+            onClick={() => handleResize("in")}
+          >
+            🔍 zoom in
           </button>
-          <button className="button" style={{ backgroundColor: "#424242", color: "#fff" }} onClick={() => handleZoom("out")}>
+          <button
+            className="button"
+            style={{ backgroundColor: "#424242", color: "#fff" }}
+            onClick={() => handleResize("out")}
+          >
             🔎 zoom out
           </button>
         </div>
 
         <div style={{ marginBottom: 10 }}>
-  <button
-    className="button"
-    style={{ marginRight: 10, backgroundColor: apiPath === "HaplotypeNetwork" ? "#007bff" : "#ccc", color: "#fff" }}
-    onClick={() => setApiPath("HaplotypeNetwork")}
-  >
-    All information
-  </button>
-  <button
-    className="button"
-    style={{ backgroundColor: apiPath === "SimplifiedHaplotypeNetwork" ? "#007bff" : "#ccc", color: "#fff" }}
-    onClick={() => setApiPath("SimplifiedHaplotypeNetwork")}
-  >
-    reduce
-  </button>
-</div>
-
+          <button
+            className="button"
+            style={{
+              marginRight: 10,
+              backgroundColor:
+                apiPath === "HaplotypeNetwork" ? "#007bff" : "#ccc",
+              color: "#fff",
+            }}
+            onClick={() => setApiPath("HaplotypeNetwork")}
+          >
+            All information
+          </button>
+          <button
+            className="button"
+            style={{
+              backgroundColor:
+                apiPath === "SimplifiedHaplotypeNetwork"
+                  ? "#007bff"
+                  : "#ccc",
+              color: "#fff",
+            }}
+            onClick={() => setApiPath("SimplifiedHaplotypeNetwork")}
+          >
+            reduce
+          </button>
+        </div>
 
         <svg
           ref={svgRef}
@@ -261,19 +289,43 @@ const HaplotypeNetwork = ({ width = 1000, height = 1000 }) => {
 
       {/* 城市圖例 */}
       {Object.keys(cityColors).length > 0 && (
-        <div style={{
-          padding: 10,
-          border: "1px solid #ccc",
-          borderRadius: 8,
-          backgroundColor: "#fff",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-          height: "fit-content",
-        }}>
-          <h3 style={{ marginTop: 0 }}>city legend</h3>
-          <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+        <div
+          style={{
+            padding: 100,
+            border: "1px solid #ccc",
+            borderRadius: 80,
+            backgroundColor: "#fff",
+            boxShadow: "0 2px 60px rgba(0,0,0,0.1)",
+            height: "fit-content",
+             marginTop: "150px"
+          }}
+        >
+          <h3 style={{ marginTop: 10 }}>location</h3>
+          <ul
+            style={{
+              listStyle: "none",
+              paddingLeft: 0,
+              margin:0,
+            }}
+          >
             {Object.entries(cityColors).map(([city, color]) => (
-              <li key={city} style={{ marginBottom: 6, display: "flex", alignItems: "center" }}>
-                <div style={{ width: 16, height: 16, backgroundColor: color, marginRight: 8, border: "1px solid #000" }} />
+              <li
+                key={city}
+                style={{
+                  marginBottom: 6,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    backgroundColor: color,
+                    marginRight: 8,
+                    border: "1px solid #000",
+                  }}
+                />
                 {city}
               </li>
             ))}

@@ -1,0 +1,28 @@
+// src/data/mapImages.js
+import TW1 from "../../assets/haplotype/TW.png";
+import TW2 from "../../assets/haplotype/japan-map.png";
+import TW3 from "../../assets/haplotype/world-map.png";
+
+export const mapImages = [
+  {
+    id: "tw1",
+    name: "Taiwan-Map ",
+    src: TW1,
+    defaultLonRange: [120, 122],
+    defaultLatRange: [21.5, 25.5],
+  },
+  {
+    id: "japan",
+    name: "Japan-map",
+    src: TW2,
+    defaultLonRange: [122.56, 153.59],
+    defaultLatRange: [20.25, 45.31],
+  },
+  {
+    id: "world",
+    name: "World-map",
+    src: TW3,
+    defaultLonRange: [0, 180],
+    defaultLatRange: [0, 90],
+  },
+];

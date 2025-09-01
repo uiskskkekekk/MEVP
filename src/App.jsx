@@ -27,9 +27,11 @@ function Navbar({
   setSelectedHaplotypeIndex,
   onEDnaSampleChange,
   onEDnaTagsChange,
+  onCsvFileChange,
   phylotreeFileName,
   eDnaSampleFileName,
   eDnaTagsFileName,
+  csvFileName,
 }) {
   return (
     <nav className="navbar">
@@ -82,19 +84,44 @@ function Navbar({
           {haplotypeFiles.length > 0 && (
             <NavDropdown
               title={
-                haplotypeFiles[selectedHaplotypeIndex]?.name || "Select Fasta"}                                   
-                style={{ marginLeft: "50px" }} 
+                haplotypeFiles[selectedHaplotypeIndex]?.name || "Select Fasta"
+              }
+              style={{ marginLeft: "50px" ,
+                color:  "blue" ,
+              }}
             >
               {haplotypeFiles.map((file, idx) => (
                 <NavDropdown.Item
                   key={idx}
                   onClick={() => setSelectedHaplotypeIndex(idx)}
+                  style={{
+                    color: selectedHaplotypeIndex === idx ? "blue" : "black",
+                  }}
                 >
                   {file.name}
                 </NavDropdown.Item>
               ))}
             </NavDropdown>
           )}
+
+          {/* Upload CSV */}
+          <NavDropdown.Item as="div">
+            <label className="custom-upload-label">
+              {csvFileName ? (
+                <>
+                  CSV File: <span className="file-name">{csvFileName}</span>
+                </>
+              ) : (
+                "Upload CSV"
+              )}
+              <input
+                type="file"
+                accept=".csv"
+                onChange={onCsvFileChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          </NavDropdown.Item>
 
           {/* Upload eDNA Sample Station (XLSX) */}
           <NavDropdown.Item as="div">
@@ -148,6 +175,9 @@ function App() {
   const [haplotypeFiles, setHaplotypeFiles] = useState([]); // [{name, content}]
   const [selectedHaplotypeIndex, setSelectedHaplotypeIndex] = useState(null);
 
+  const [csvContent, setCsvContent] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+
   const [eDnaSampleContent, setEDnaSampleContent] = useState("");
   const [eDnaTagsContent, setEDnaTagsContent] = useState("");
   const [eDnaSampleFileName, setEDnaSampleFileName] = useState("");
@@ -185,6 +215,19 @@ function App() {
       };
       reader.readAsText(file);
     });
+  };
+
+  // Handle CSV upload
+  const handleCsvFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCsvContent(e.target.result);
+    };
+    reader.readAsText(file);
   };
 
   // Parse eDNA Sample Station
@@ -236,9 +279,11 @@ function App() {
           setSelectedHaplotypeIndex={setSelectedHaplotypeIndex}
           onEDnaSampleChange={handleEDnaSampleChange}
           onEDnaTagsChange={handleEDnaTagsChange}
+          onCsvFileChange={handleCsvFileChange}
           phylotreeFileName={phylotreeFileName}
           eDnaSampleFileName={eDnaSampleFileName}
           eDnaTagsFileName={eDnaTagsFileName}
+          csvFileName={csvFileName}
         />
         <div className="container-fluid" id="workspace-container">
           <Routes>
@@ -264,6 +309,8 @@ function App() {
                       ? haplotypeFiles[selectedHaplotypeIndex].name
                       : ""
                   }
+                  csvContent={csvContent}
+                  csvFileName={csvFileName}
                   eDnaSampleContent={eDnaSampleContent}
                   eDnaTagsContent={eDnaTagsContent}
                 />

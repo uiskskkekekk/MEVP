@@ -87,8 +87,9 @@
   border-radius: 5px;
   font-size: 12px;
   font-family: monospace;
-  color: rgb(237, 44, 6);
+  color: rgb(250, 46, 5);
   user-select: none;
+  
 }
 
 /* PieChart 圓餅圖容器 */
@@ -131,6 +132,15 @@
   width: 250px;
 }
 
+
+
+
+
+.small-input {
+  width: 100px;   /* 輸入框寬度 */
+  font-size: 20px; /* 字體小一點 */
+  padding: 2px 4px; /* 內距縮小 */
+}
 
 
 

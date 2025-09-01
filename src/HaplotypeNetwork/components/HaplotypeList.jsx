@@ -1,28 +1,48 @@
-
 import React from "react";
 
-const HaplotypeList = ({ paginatedGenes = [], geneColors = {} }) => {
+const HaplotypeList = ({
+  viewMode,
+  paginatedGenes = [],
+  geneColors = {},
+  hapHeaders = [],
+  hapColors = {},
+  hapPage = 1,
+  hapsPerPage = 10,
+}) => {
+  let displayItems = [];
+
+  if (viewMode === "count") {
+    displayItems = paginatedGenes.map((gene) => ({
+      name: gene.name,
+      color: geneColors[gene.name] || "black",
+    }));
+  } else if (viewMode === "total") {
+    const startIdx = (hapPage - 1) * hapsPerPage;
+    const endIdx = startIdx + hapsPerPage;
+    const currentHaps = hapHeaders.slice(startIdx, endIdx);
+
+    displayItems = currentHaps.map((hap) => ({
+      name: hap,
+      color: hapColors[hap] || "black",
+    }));
+  }
+
   return (
     <div
-  style={{
-    marginTop: "210px" // 整個列表往下移動 30px
-  }}
->
-  <h2>Haplotype List</h2>
-  <ul>
-    {paginatedGenes.map((gene, index) => (
-      <li
-        key={index}
-        style={{
-          color: geneColors[gene.name] || "black"
-        }}
-      >
-        {gene.name}
-      </li>
-    ))}
-  </ul>
-</div>
-
+      style={{
+        marginTop: "210px",
+        width: "250px",
+      }}
+    >
+      <h2>Haplotype List</h2>
+      <ul>
+        {displayItems.map((item, index) => (
+          <li key={index} style={{ color: item.color }}>
+            {item.name}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

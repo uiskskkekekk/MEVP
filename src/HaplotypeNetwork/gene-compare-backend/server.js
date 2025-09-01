@@ -41,29 +41,8 @@ app.get("/sequences", (req, res) => {
   res.json({ geneNames, sequences: geneSequences });
 });
 
-/**
- * 取得所有基因名稱（輕量版）
- * 適合前端分頁使用，僅回傳名稱列表
- */
-app.get("/sequences/gene-names", (req, res) => {
-  const geneNames = Object.keys(geneSequences);
-  res.json({ geneNames });
-});
 
-/**
- * 根據基因名稱取得單一序列
- * 適用點選基因時才載入完整序列
- */
-app.get("/sequences/:geneName", (req, res) => {
-  const geneName = req.params.geneName;
-  const sequence = geneSequences[geneName];
 
-  if (!sequence) {
-    return res.status(404).json({ error: "Gene not found" });
-  }
-
-  res.json({ sequence });
-});
 
 /**
  * 基因比對（使用 Worker Thread 避免阻塞主線程）
@@ -162,10 +141,6 @@ app.post("/getGeneCountsByNames", (req, res) => {
   res.json({ genes: filteredGenes });
 });
 
-/**
- * 計算兩序列間的 Hamming distance
- * 只在序列長度相同時計算，否則回傳無限大
- */
 function hammingDistance(seq1, seq2) {
   if (seq1.length !== seq2.length) return Infinity;
   let dist = 0;
@@ -177,12 +152,14 @@ function hammingDistance(seq1, seq2) {
 
 /**
  * 建立 Haplotype 圖資料（nodes 與 edges）
- * nodes: 唯一序列及其相關城市與數量
- * edges: Hamming distance = 1 的序列連線
+ * - 用 Kruskal 演算法挑出 MST (黑實線)
+ * - 再補一些距離 1~300 的邊 (藍虛線)
+ * - 最後把漂浮孤立的圓圈接回代表點 (灰虛線)
  */
 app.get("/HaplotypeNetwork", (req, res) => {
   const sequenceMap = new Map();
 
+  // 建立 sequence → gene 群組
   for (const { name, city, count } of geneCounts) {
     const sequence = geneSequences[name];
     if (!sequence) continue;
@@ -195,8 +172,194 @@ app.get("/HaplotypeNetwork", (req, res) => {
 
   const nodes = [];
   const representatives = [];
-  const edges = [];
+  let groupIdCounter = 0;
 
+  // 建立 nodes 與代表點
+  for (const [sequence, geneGroup] of sequenceMap.entries()) {
+    const nodeMap = new Map();
+
+    for (const { name, city, count } of geneGroup) {
+      if (!nodeMap.has(name)) {
+        nodeMap.set(name, {
+          id: name,
+          sequence,
+          count: 0,
+          cities: {},
+          groupId: groupIdCounter,
+        });
+      }
+      const node = nodeMap.get(name);
+      node.count += count;
+      node.cities[city] = (node.cities[city] || 0) + count;
+    }
+
+    const groupNodes = Array.from(nodeMap.values());
+    const representative = groupNodes.reduce((a, b) =>
+      a.count >= b.count ? a : b
+    );
+    representative.isRepresentative = true;
+
+    representatives.push(representative);
+    nodes.push(...groupNodes);
+
+    groupIdCounter++;
+  }
+
+  // ==== 建立所有可能的邊（代表點之間的 Hamming distance） ====
+  const allEdges = [];
+  for (let i = 0; i < representatives.length; i++) {
+    for (let j = i + 1; j < representatives.length; j++) {
+      const nodeA = representatives[i];
+      const nodeB = representatives[j];
+      const dist = hammingDistance(nodeA.sequence, nodeB.sequence);
+
+      allEdges.push({
+        source: nodeA.id,
+        target: nodeB.id,
+        distance: dist,
+      });
+    }
+  }
+
+  // ==== Kruskal's Algorithm：最小生成樹 ====
+  const parent = {};
+  const find = (x) => {
+    if (parent[x] === undefined) parent[x] = x;
+    if (parent[x] !== x) parent[x] = find(parent[x]);
+    return parent[x];
+  };
+  const union = (x, y) => {
+    const rootX = find(x);
+    const rootY = find(y);
+    if (rootX === rootY) return false;
+    parent[rootY] = rootX;
+    return true;
+  };
+
+  allEdges.sort((a, b) => a.distance - b.distance);
+
+  const mstEdges = [];
+  for (const edge of allEdges) {
+    if (union(edge.source, edge.target)) {
+      mstEdges.push({
+        ...edge,
+        isMST: true,
+        style: "solid",
+        color: "#000",
+      });
+      if (mstEdges.length === representatives.length - 1) break;
+    }
+  }
+
+  // ==== 額外加上 Hamming distance 1~300 的邊 ====
+  const extraEdges = [];
+  const connectionCount = {};
+  const cityPairs = new Set();
+
+  for (let i = 0; i < representatives.length; i++) {
+    for (let j = i + 1; j < representatives.length; j++) {
+      const nodeA = representatives[i];
+      const nodeB = representatives[j];
+      const dist = hammingDistance(nodeA.sequence, nodeB.sequence);
+
+      if (dist >= 1 && dist <= 300) {
+        const alreadyInMST = mstEdges.some(
+          (e) =>
+            (e.source === nodeA.id && e.target === nodeB.id) ||
+            (e.source === nodeB.id && e.target === nodeA.id)
+        );
+
+        if (!alreadyInMST) {
+          if ((connectionCount[nodeA.id] || 0) >= 300) continue;
+          if ((connectionCount[nodeB.id] || 0) >= 300) continue;
+
+          const cityPairKey = [nodeA.city, nodeB.city].sort().join("-");
+          if (cityPairs.has(cityPairKey)) continue;
+
+          extraEdges.push({
+            source: nodeA.id,
+            target: nodeB.id,
+            distance: dist,
+            isMST: false,
+            style: "dashed",
+            color: "#34b7f1",
+          });
+
+          connectionCount[nodeA.id] =
+            (connectionCount[nodeA.id] || 0) + 1;
+          connectionCount[nodeB.id] =
+            (connectionCount[nodeB.id] || 0) + 1;
+          cityPairs.add(cityPairKey);
+        }
+      }
+    }
+  }
+
+  // ==== 漂浮孤立圓圈接到代表點 ====
+  const representativeMap = {};
+  for (const node of nodes) {
+    if (node.isRepresentative) {
+      representativeMap[node.groupId] = node;
+    }
+  }
+
+  const connectedEdges = [...mstEdges, ...extraEdges];
+  const isolatedEdges = [];
+  for (const node of nodes) {
+    if (!node.isRepresentative) {
+      const alreadyConnected = connectedEdges.some(
+        (e) => e.source === node.id || e.target === node.id
+      );
+      if (!alreadyConnected) {
+        const rep = representativeMap[node.groupId];
+        if (rep) {
+          isolatedEdges.push({
+            source: node.id,
+            target: rep.id,
+            distance: 0,
+            isMST: false,
+            style: "dashed",
+            color: "#999",
+          });
+        }
+      }
+    }
+  }
+
+  // ==== 回傳結果 ====
+  res.json({ nodes, edges: [...mstEdges, ...extraEdges, ...isolatedEdges] });
+});
+
+
+
+
+
+
+function hammingDistance(seq1, seq2) {
+  if (seq1.length !== seq2.length) return Infinity;
+  let dist = 0;
+  for (let i = 0; i < seq1.length; i++) {
+    if (seq1[i] !== seq2[i]) dist++;
+  }
+  return dist;
+}
+
+app.get("/SimplifiedHaplotypeNetwork", (req, res) => { 
+  const sequenceMap = new Map();
+
+  // 與 HaplotypeNetwork 相同，建立 sequence → gene 資料群
+  for (const { name, city, count } of geneCounts) {
+    const sequence = geneSequences[name];
+    if (!sequence) continue;
+
+    if (!sequenceMap.has(sequence)) {
+      sequenceMap.set(sequence, []);
+    }
+    sequenceMap.get(sequence).push({ name, city, count });
+  }
+
+  const rawNodes = [];
+  const rawRepresentatives = [];
   let groupIdCounter = 0;
 
   for (const [sequence, geneGroup] of sequenceMap.entries()) {
@@ -221,60 +384,201 @@ app.get("/HaplotypeNetwork", (req, res) => {
     const representative = groupNodes.reduce((a, b) => (a.count >= b.count ? a : b));
     representative.isRepresentative = true;
 
-    representatives.push(representative);
-    nodes.push(...groupNodes);
-
-    for (const node of groupNodes) {
-      if (node.id !== representative.id) {
-        edges.push({
-          source: node.id,
-          target: representative.id,
-          distance: 0,
-        });
-      }
-    }
-
+    rawRepresentatives.push(representative);
+    rawNodes.push(...groupNodes);
     groupIdCounter++;
   }
 
-  // 建立代表之間的環狀連線（依 Hamming distance 貪婪最小距離）
-  const used = new Set();
-  let current = representatives[0];
-  used.add(current.id);
-
-  while (used.size < representatives.length) {
-    let minDist = Infinity;
-    let closest = null;
-
-    for (const rep of representatives) {
-      if (used.has(rep.id)) continue;
-      const dist = hammingDistance(current.sequence, rep.sequence);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = rep;
-      }
+  // ===== 簡化處理：根據前綴合併 id，如 BbR_100_1 → BbR_100 =====
+  const grouped = new Map();
+  for (const node of rawRepresentatives) {
+    const prefix = node.id.split("_").slice(0, 2).join("_");
+    if (!grouped.has(prefix)) {
+      grouped.set(prefix, []);
     }
+    grouped.get(prefix).push(node);
+  }
 
-    if (closest) {
-      edges.push({
-        source: current.id,
-        target: closest.id,
-        distance: hammingDistance(current.sequence, closest.sequence),
+  const simplifiedNodes = [];
+  for (const [prefix, group] of grouped.entries()) {
+    let rep = group.find((n) => n.isRepresentative) || group[0];
+    simplifiedNodes.push({
+      ...rep,
+      id: prefix, // 改 id 為前綴
+    });
+  }
+
+  // 建立所有可能的邊（兩兩之間的 Hamming distance）
+  const allEdges = [];
+  for (let i = 0; i < simplifiedNodes.length; i++) {
+    for (let j = i + 1; j < simplifiedNodes.length; j++) {
+      const nodeA = simplifiedNodes[i];
+      const nodeB = simplifiedNodes[j];
+      const dist = hammingDistance(nodeA.sequence, nodeB.sequence);
+
+      allEdges.push({
+        source: nodeA.id,
+        target: nodeB.id,
+        distance: dist
       });
-      used.add(closest.id);
-      current = closest;
     }
   }
 
-  const start = representatives[0];
-  edges.push({
-    source: current.id,
-    target: start.id,
-    distance: hammingDistance(current.sequence, start.sequence),
-  });
+  // Kruskal's Algorithm：最小生成樹
+  const parent = {};
+  const find = (x) => {
+    if (parent[x] === undefined) parent[x] = x;
+    if (parent[x] !== x) parent[x] = find(parent[x]);
+    return parent[x];
+  };
+  const union = (x, y) => {
+    const rootX = find(x);
+    const rootY = find(y);
+    if (rootX === rootY) return false;
+    parent[rootY] = rootX;
+    return true;
+  };
 
-  res.json({ nodes, edges });
+  // 對所有邊依照距離排序
+  allEdges.sort((a, b) => a.distance - b.distance);
+
+  // 篩選出 MST 邊
+  const mstEdges = [];
+  for (const edge of allEdges) {
+    if (union(edge.source, edge.target)) {
+      mstEdges.push({ ...edge, isMST: true, style: 'solid', color: '#000' });
+      if (mstEdges.length === simplifiedNodes.length - 1) break;
+    }
+  }
+
+  // 再額外加上 hammingDistance 1~3 的邊
+const extraEdges = [];
+const connectionCount = {}; // 記錄每個基因已經加了幾條額外連線
+const cityPairs = new Set(); // 記錄已經畫過的縣市組合
+
+for (let i = 0; i < simplifiedNodes.length; i++) {
+  for (let j = i + 1; j < simplifiedNodes.length; j++) {
+    const nodeA = simplifiedNodes[i];
+    const nodeB = simplifiedNodes[j];
+    const dist = hammingDistance(nodeA.sequence, nodeB.sequence);
+
+    if (dist >= 0 && dist <= 3) {
+      const alreadyInMST = mstEdges.some(
+        e =>
+          (e.source === nodeA.id && e.target === nodeB.id) ||
+          (e.source === nodeB.id && e.target === nodeA.id)
+      );
+
+      if (!alreadyInMST) {
+        // 限制同一個基因最多加 2 條連線
+        if ((connectionCount[nodeA.id] || 0) >= 3) continue;
+        if ((connectionCount[nodeB.id] || 0) >= 3) continue;
+
+        // 限制相同縣市不能重複畫
+        const cityPairKey = [nodeA.city, nodeB.city].sort().join("-");
+        if (cityPairs.has(cityPairKey)) continue;
+
+        // 通過限制 → 加入 extraEdges
+        extraEdges.push({
+          source: nodeA.id,
+          target: nodeB.id,
+          distance: dist,
+          isMST: false,
+          style: "dashed",
+          color: "#34b7f1",
+        });
+
+        // 更新紀錄
+        connectionCount[nodeA.id] = (connectionCount[nodeA.id] || 0) + 1;
+        connectionCount[nodeB.id] = (connectionCount[nodeB.id] || 0) + 1;
+        cityPairs.add(cityPairKey);
+      }
+    }
+  }
+}
+
+
+  // 回傳 MST + 額外邊
+  res.json({ nodes: simplifiedNodes, edges: [...mstEdges, ...extraEdges] });
 });
+
+
+
+
+
+
+
+
+
+const multer = require("multer");
+const { exec } = require("child_process");
+const fs = require("fs");
+
+
+const upload = multer({ dest: "uploads/" });
+
+app.post("/reduceHaplotypes", upload.fields([
+  { name: "hapFastaFile" },
+  { name: "excelFile" }
+]), (req, res) => {
+  const reduceSize = req.body.reduceSize;
+  const outputFilename = req.body.outputFilename;
+
+  if (!reduceSize || !outputFilename) {
+    return res.status(400).json({ error: "缺少 reduceSize 或 outputFilename" });
+  }
+
+  const hapFastaPath = req.files.hapFastaFile?.[0]?.path;
+  const excelPath = req.files.excelFile?.[0]?.path;
+
+  if (!hapFastaPath || !excelPath) {
+    return res.status(400).json({ error: "請上傳 FASTA 和 Excel 檔案" });
+  }
+
+  const outputsDir = path.join(__dirname, "outputs");
+  fs.mkdirSync(outputsDir, { recursive: true });
+
+  const outputPath = path.join(outputsDir, outputFilename);
+  const scriptPath = path.join(__dirname, "reduce_hap_size_py3.py");
+
+  // Python 執行命令
+  const command = `python "${scriptPath}" "${hapFastaPath}" ${reduceSize} "${excelPath}" "${outputPath}"`;
+
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error("❌ 執行 Python 失敗:", error);
+      console.error("stderr:", stderr);
+      console.error("stdout:", stdout);
+      return res.status(500).json({
+        error: "執行腳本錯誤",
+        details: { message: error.message, stderr, stdout }
+      });
+    }
+
+    console.log("✅ Python 執行完成:", stdout);
+
+    // 下載 .reduce.fa
+    res.download(outputPath, outputFilename, (err) => {
+      if (err) {
+        console.error("❌ 檔案下載失敗:", err);
+        res.status(500).json({ error: "下載失敗" });
+      }
+
+      // 清理上傳暫存檔案
+      fs.unlink(hapFastaPath, () => {});
+      fs.unlink(excelPath, () => {});
+
+      // 額外刪除 asv.fa 和 asv.list
+      const asvFa = path.join(outputsDir, "asv.fa");
+      const asvList = path.join(outputsDir, "asv.list");
+      fs.unlink(asvFa, () => {});
+      fs.unlink(asvList, () => {});
+    });
+  });
+});
+
+
+
 
 
 

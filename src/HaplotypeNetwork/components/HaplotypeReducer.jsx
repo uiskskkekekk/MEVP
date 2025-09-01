@@ -11,7 +11,7 @@ const HaplotypeReducer = () => {
     e.preventDefault();
 
     if (!hapFasta || !excelFile) {
-      alert("請上傳 FASTA 和 Excel 檔案");
+      alert("Please upload both FASTA and Excel files.");
       return;
     }
 
@@ -31,8 +31,8 @@ const HaplotypeReducer = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ 錯誤回應:", errorText);
-        alert("執行錯誤：" + errorText);
+        console.error("❌ Error response:", errorText);
+        alert("Execution error: " + errorText);
         return;
       }
 
@@ -45,8 +45,8 @@ const HaplotypeReducer = () => {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("❌ 發送失敗:", err);
-      alert("無法傳送到後端或下載失敗");
+      console.error("❌ Request failed:", err);
+      alert("Failed to send to backend or download failed");
     } finally {
       setLoading(false);
     }
@@ -54,26 +54,87 @@ const HaplotypeReducer = () => {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #ccc" }}>
-      <h3> Haplotype 減量工具</h3>
+      <h3> Haplotype Reduce tool</h3>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>FASTA 檔 (.msa.asv.fa): </label>
-          <input type="file" accept=".fa" onChange={(e) => setHapFasta(e.target.files[0])} />
+        {/* FASTA file */}
+        <div style={{ marginBottom: "10px" }}>
+          <label>FASTA (.msa.asv.fa): </label>
+          <input
+            id="fastaFile"
+            type="file"
+            accept=".fa"
+            style={{ display: "none" }}
+            onChange={(e) => setHapFasta(e.target.files[0])}
+          />
+          <label
+            htmlFor="fastaFile"
+            style={{
+              background: "#616161ff",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              marginLeft: "8px",
+            }}
+          >
+            Choose File
+          </label>
+          <span style={{ marginLeft: "8px" }}>
+            {hapFasta ? hapFasta.name : "No file "}
+          </span>
         </div>
-        <div>
-          <label>樣站 Excel 檔 (.xlsx): </label>
-          <input type="file" accept=".xlsx" onChange={(e) => setExcelFile(e.target.files[0])} />
+
+        {/* Excel file */}
+        <div style={{ marginBottom: "10px" }}>
+          <label>Sample station Excel (.xlsx): </label>
+          <input
+            id="excelFile"
+            type="file"
+            accept=".xlsx"
+            style={{ display: "none" }}
+            onChange={(e) => setExcelFile(e.target.files[0])}
+          />
+          <label
+            htmlFor="excelFile"
+            style={{
+              background: "#616161ff",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              marginLeft: "8px",
+            }}
+          >
+            Choose File
+          </label>
+          <span style={{ marginLeft: "8px" }}>
+            {excelFile ? excelFile.name : "No file "}
+          </span>
         </div>
-        <div>
-          <label>縮減目標數量: </label>
-          <input type="number" value={reduceSize} onChange={(e) => setReduceSize(e.target.value)} />
+
+        {/* Reduce quantity */}
+        <div style={{ marginBottom: "10px" }}>
+          <label>Reduce quantity: </label>
+          <input
+            type="number"
+            value={reduceSize}
+            onChange={(e) => setReduceSize(e.target.value)}
+          />
         </div>
-        <div>
-          <label>輸出檔名: </label>
-          <input type="text" value={outputFilename} onChange={(e) => setOutputFilename(e.target.value)} />
+
+        {/* Output filename */}
+        <div style={{ marginBottom: "10px" }}>
+          <label>Output file name: </label>
+          <input
+            type="text"
+            value={outputFilename}
+            onChange={(e) => setOutputFilename(e.target.value)}
+          />
         </div>
+
+        {/* Export button */}
         <button type="submit" disabled={loading}>
-          {loading ? "處理中..." : "執行"}
+          {loading ? "Processing..." : "Export"}
         </button>
       </form>
     </div>

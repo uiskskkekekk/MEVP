@@ -140,7 +140,7 @@ const GeneSelector = ({
 
         {/* 自訂範圍設定 */}
         <div className="flex flex-gap-10 align-center">
-          <span>range：</span>
+          <span>Range：</span>
           <input
             type="number"
             min={0}
@@ -167,7 +167,7 @@ const GeneSelector = ({
               }
             }}
           >
-            search
+            Search
           </button>
         </div>
 
