@@ -9,7 +9,7 @@ import "../components/AppStyles.css";
 
 // ---------- 子元件：城市圓餅圖 ----------
 const CityPieChart = memo(
-  ({ city, chartData, geneColors, position, opacity }) => {
+  ({ city, chartData, geneColors, position, opacity, onClick, isSelected  }) => {
     if (!position || typeof position.cx !== "number" || typeof position.cy !== "number")
       return null;
 
@@ -27,9 +27,26 @@ const CityPieChart = memo(
           pointerEvents: "auto",
           opacity,
           zIndex: 20,
+
+          cursor: "pointer",
+
         }}
-      >
+        onClick={onClick}
+      >        
         <PieChart width={outerRadius * 2} height={outerRadius * 2}>
+
+          {/* 外框圈選效果 */}
+          {isSelected && (
+            <circle
+              cx="50%"
+              cy="50%"
+              r={outerRadius + 2}
+              fill="none"
+              stroke="black"
+              strokeWidth={4}
+            />
+          )}
+
           <Pie data={data} dataKey="value" cx="50%" cy="50%" outerRadius={outerRadius}>
             {data.map((entry, index) => (
               <Cell key={`cell-${city}-${index}`} fill={geneColors[entry.name] || "#bbb"} />
@@ -46,7 +63,8 @@ const CityPieChart = memo(
     prev.chartData.totalCount === next.chartData.totalCount &&
     JSON.stringify(prev.chartData.data) === JSON.stringify(next.chartData.data) &&
     prev.position?.cx === next.position?.cx &&
-    prev.position?.cy === next.position?.cy
+    prev.position?.cy === next.position?.cy&&
+    prev.isSelected === next.isSelected
 );
 
 // ---------- 主元件 ----------
@@ -68,9 +86,12 @@ const [initialized, setInitialized] = useState(false);
 const [latLon, setLatLon] = useState({ lat: 0, lon: 0 });
 const [mapPage, setMapPage] = useState(0); // 0: cityGeneData, 1: totalCityGeneData
 const [citySearchTerm, setCitySearchTerm] = useState("");
+const [selectedChart, setSelectedChart] = useState(null);  // 👈 新增
+const [selectedCity, setSelectedCity] = useState(null);
+
 
 // --- 地圖圖片與設定 ---
-const [activeMapId, setActiveMapId] = useState(mapImages[0].id);
+const [activeMapId, setActiveMapId] = useState(null);
 const [mapUrl, setMapUrl] = useState(null);
 const [mapLoaded, setMapLoaded] = useState(false);
 const [mapImage, setMapImage] = useState(null);
@@ -78,6 +99,12 @@ const [imgW, setImgW] = useState(null);
 const [imgH, setImgH] = useState(null);
 const [lonRange, setLonRange] = useState([null, null]);
 const [latRange, setLatRange] = useState([null, null]);
+const [lonDirMin, setLonDirMin] = useState("E");
+const [lonDirMax, setLonDirMax] = useState("E");
+const [latDirMin, setLatDirMin] = useState("N");
+const [latDirMax, setLatDirMax] = useState("N");
+
+
 
 const conW = imgW + 350;
 const conH = imgH + 350;
@@ -114,6 +141,24 @@ const handleSwitchMap = (map) => {
     setImgH(newHeight);
     setLonRange(map.defaultLonRange);
     setLatRange(map.defaultLatRange);
+
+    setLonDirMin(map.lonDirMin || "E");
+    setLonDirMax(map.lonDirMax || "E");
+    setLatDirMin(map.latDirMin || "N");
+    setLatDirMax(map.latDirMax || "N");
+  
+
+    // 計算真正的範圍值
+    setLonRange([
+      Math.abs(map.defaultLonRange[0]) * (map.lonDirMin === "W" ? -1 : 1),
+      Math.abs(map.defaultLonRange[1]) * (map.lonDirMax === "W" ? -1 : 1),
+    ]);
+
+    setLatRange([
+      Math.abs(map.defaultLatRange[0]) * (map.latDirMin === "S" ? -1 : 1),
+      Math.abs(map.defaultLatRange[1]) * (map.latDirMax === "S" ? -1 : 1),
+    ]);
+
   };
 };
 
@@ -405,10 +450,15 @@ useEffect(() => {
 const hasCityGeneData = Boolean(cityGeneData && Object.keys(cityGeneData).length > 0);
 const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityGeneData).length > 0);
 
+// 如果資料改變而選中的 city 不見了，就清掉選取
+useEffect(() => {
+  if (selectedCity && !(filteredCityGeneData && filteredCityGeneData[selectedCity])) {
+    setSelectedCity(null);
+  }
+}, [filteredCityGeneData, selectedCity]);
 
 
-
-  return (
+return (
   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     
     {/* --- 最上方：Gene Map 切換按鈕 --- */}
@@ -460,161 +510,23 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
       </div>
     </div>
 
-    {/* --- 上傳與設定區 --- */}
-    <div style={{ marginBottom: 12 }}>
+    {/* --- 上傳與設定區 + 地圖清單區 --- */}
+    <div style={{ display: "flex", gap: 16 }}>
+      {/* 左側：上傳與設定區 + 地圖清單 */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 , width:300 }}>
+        {/* 上傳與設定區 */}
+        <div>
+          <label>Upload Map PNG: </label>
+          <input type="file" accept="image/png" onChange={handleImageUpload} />
+        </div>
 
-      {/* Upload Map */}
-      <div>
-        <label>Upload Map PNG: </label>
-        <input type="file" accept="image/png" onChange={handleImageUpload} />
-      </div>
-
-      {/* Image Size */}
-      <div>
-        <label>Image Width: </label>
-        <input
-          type="number"
-          value={imgW}
-          onChange={(e) => setImgW(Number(e.target.value))}
-          className="small-input"
-        />
-      </div>
-
-      <div>
-        <label>Image Height: </label>
-        <input
-          type="number"
-          value={imgH}
-          onChange={(e) => setImgH(Number(e.target.value))}
-          className="small-input"
-        />
-        <button
-          style={{ marginLeft: 8 }}
-          onClick={() => {
-            setImgW(Math.round(imgW * 1.25));
-            setImgH(Math.round(imgH * 1.25));
-          }}
-        >
-          🔍+
-        </button>
-        <button
-          style={{ marginLeft: 4 }}
-          onClick={() => {
-            setImgW(Math.round(imgW * 0.8));
-            setImgH(Math.round(imgH * 0.8));
-          }}
-        >
-          🔍-
-        </button>
-      </div>
-
-      {/* Longitude Range */}
-      <div>
-        <label>Longitude Range: </label>
-        <select
-          value={lonRange[0] >= 0 ? "E" : "W"}
-          onChange={(e) =>
-            setLonRange([
-              Math.abs(lonRange[0]) * (e.target.value === "E" ? 1 : -1),
-              lonRange[1],
-            ])
-          }
-        >
-          <option value="E">E</option>
-          <option value="W">W</option>
-        </select>
-        <input
-          type="number"
-          value={Math.abs(lonRange[0])}
-          onChange={(e) =>
-            setLonRange([+e.target.value * (lonRange[0] >= 0 ? 1 : -1), lonRange[1]])
-          }
-          className="small-input"
-        />
-        -
-        <select
-          value={lonRange[1] >= 0 ? "E" : "W"}
-          onChange={(e) =>
-            setLonRange([
-              lonRange[0],
-              Math.abs(lonRange[1]) * (e.target.value === "E" ? 1 : -1),
-            ])
-          }
-        >
-          <option value="E">E</option>
-          <option value="W">W</option>
-        </select>
-        <input
-          type="number"
-          value={Math.abs(lonRange[1])}
-          onChange={(e) =>
-            setLonRange([lonRange[0], +e.target.value * (lonRange[1] >= 0 ? 1 : -1)])
-          }
-          className="small-input"
-        />
-      </div>
-
-      {/* Latitude Range */}
-      <div>
-        <label>Latitude Range: </label>
-        <select
-          value={latRange[0] >= 0 ? "N" : "S"}
-          onChange={(e) =>
-            setLatRange([
-              Math.abs(latRange[0]) * (e.target.value === "N" ? 1 : -1),
-              latRange[1],
-            ])
-          }
-        >
-          <option value="N">N</option>
-          <option value="S">S</option>
-        </select>
-        <input
-          type="number"
-          value={Math.abs(latRange[0])}
-          onChange={(e) =>
-            setLatRange([+e.target.value * (latRange[0] >= 0 ? 1 : -1), latRange[1]])
-          }
-          className="small-input"
-        />
-        -
-        <select
-          value={latRange[1] >= 0 ? "N" : "S"}
-          onChange={(e) =>
-            setLatRange([
-              latRange[0],
-              Math.abs(latRange[1]) * (e.target.value === "N" ? 1 : -1),
-            ])
-          }
-        >
-          <option value="N">N</option>
-          <option value="S">S</option>
-        </select>
-        <input
-          type="number"
-          value={Math.abs(latRange[1])}
-          onChange={(e) =>
-            setLatRange([latRange[0], +e.target.value * (latRange[1] >= 0 ? 1 : -1)])
-          }
-          className="small-input"
-        />
-      </div>
-
-      <div>
-        Container Size = {conW} x {conH}
-      </div>
-    </div>
-
-    {/* --- 下方區塊：左側地圖清單 + 右側地圖容器 --- */}
-    <div style={{ display: "flex", flexDirection: "row", gap: 16 }}>
-
-      {/* 左側：地圖清單 */}
-      <div
+        {/* 地圖清單 */}
+        <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 6,
-          minWidth: 140,
+          minWidth: 300,
           alignSelf: "flex-start",
         }}
       >
@@ -651,6 +563,178 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
           Customize Map
         </button>
       </div>
+
+        <div style={{ marginTop: 8 }}>
+          <label>Image Width: </label>
+          <input
+            type="number"
+            value={imgW ?? ""}
+            onChange={(e) => setImgW(Number(e.target.value))}
+            className="small-input"
+          />
+        </div>
+
+        <div style={{ marginTop: 8 }}>
+          <label>Image Height: </label>
+          <input
+            type="number"
+            value={imgH ?? ""}
+            onChange={(e) => setImgH(Number(e.target.value))}
+            className="small-input"
+          />
+          <button
+            style={{ marginLeft: 8 }}
+            onClick={() => {
+              setImgW(Math.round(imgW * 1.25));
+              setImgH(Math.round(imgH * 1.25));
+            }}
+          >
+            🔍+
+          </button>
+          <button
+            style={{ marginLeft: 4 }}
+            onClick={() => {
+              setImgW(Math.round(imgW * 0.8));
+              setImgH(Math.round(imgH * 0.8));
+            }}
+          >
+            🔍-
+          </button>
+        </div>
+
+        {/* Longitude Range */}
+        <div style={{ marginTop: 8 }}>
+          <label>Longitude Range: </label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <select
+              value={lonDirMin}
+              onChange={(e) => {
+                setLonDirMin(e.target.value);
+                setLonRange([
+                  Math.abs(lonRange[0]) * (e.target.value === "E" ? 1 : -1),
+                  lonRange[1],
+                ]);
+              }}
+            >
+              <option value="E">E</option>
+              <option value="W">W</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(lonRange[0])}
+              onChange={(e) =>
+                setLonRange([
+                  +e.target.value * (lonDirMin === "E" ? 1 : -1),
+                  lonRange[1],
+                ])
+              }
+              className="small-input"
+            />
+            -
+            <select
+              value={lonDirMax}
+              onChange={(e) => {
+                setLonDirMax(e.target.value);
+                setLonRange([
+                  lonRange[0],
+                  Math.abs(lonRange[1]) * (e.target.value === "E" ? 1 : -1),
+                ]);
+              }}
+            >
+              <option value="E">E</option>
+              <option value="W">W</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(lonRange[1])}
+              onChange={(e) =>
+                setLonRange([
+                  lonRange[0],
+                  +e.target.value * (lonDirMax === "E" ? 1 : -1),
+                ])
+              }
+              className="small-input"
+            />
+          </div>
+        </div>
+
+        {/* Latitude Range */}
+        <div style={{ marginTop: 8 }}>
+          <label>Latitude Range: </label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <select
+              value={latDirMin}
+              onChange={(e) => {
+                setLatDirMin(e.target.value);
+                setLatRange([
+                  Math.abs(latRange[0]) * (e.target.value === "N" ? 1 : -1),
+                  latRange[1],
+                ]);
+              }}
+            >
+              <option value="N">N</option>
+              <option value="S">S</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(latRange[0])}
+              onChange={(e) =>
+                setLatRange([
+                  +e.target.value * (latDirMin === "N" ? 1 : -1),
+                  latRange[1],
+                ])
+              }
+              className="small-input"
+            />
+            -
+            <select
+              value={latDirMax}
+              onChange={(e) => {
+                setLatDirMax(e.target.value);
+                setLatRange([
+                  latRange[0],
+                  Math.abs(latRange[1]) * (e.target.value === "N" ? 1 : -1),
+                ]);
+              }}
+            >
+              <option value="N">N</option>
+              <option value="S">S</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(latRange[1])}
+              onChange={(e) =>
+                setLatRange([
+                  latRange[0],
+                  +e.target.value * (latDirMax === "N" ? 1 : -1),
+                ])
+              }
+              className="small-input"
+            />
+          </div>
+        </div>                
+      </div>
+
+      {/* 選中的圓餅圖資訊顯示區 */}
+        {selectedCity && filteredCityGeneData[selectedCity] && (
+          <div style={{ marginTop: 16, padding: 12, border: "1px solid #ccc", borderRadius: 6 }}>
+           <h4>{selectedCity} Gene distribution</h4>
+          <ul>
+            {filteredCityGeneData[selectedCity].data.map((g) => (
+            <li key={g.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: "50%",
+              background: geneColors[g.name] || "#bbb"
+              }} />
+              {g.name}: {g.value}
+            </li>
+          ))}
+        </ul>
+        <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
+          Total quantity: {filteredCityGeneData[selectedCity].totalCount}
+        </div>
+        </div>
+      )}
 
       {/* 右側：地圖容器 */}
       <div style={{ flex: 1 }}>
@@ -697,7 +781,14 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
             }}
           >
             <defs>
-              <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <marker
+                id="arrow"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
                 <path d="M0,0 L0,6 L6,3 z" fill="gray" />
               </marker>
             </defs>
@@ -711,6 +802,7 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
                   from &&
                   to &&
                   (from.cx !== to.cx || from.cy !== to.cy);
+               
 
                 return (
                   shouldDraw && (
@@ -745,6 +837,8 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
                 geneColors={geneColors}
                 position={chartData.containerCoordinates}
                 opacity={cityVisibility[city] ? 1 : 0.12}
+                onClick={() => setSelectedCity(city)}   // 👈 點擊後立即記錄
+                isSelected={selectedCity === city}      // 👈 判斷是否選中
               />
             ))}
 
@@ -768,8 +862,9 @@ const hasTotalCityGeneData = Boolean(totalCityGeneData && Object.keys(totalCityG
         <button onClick={handleExportPNG} style={{ marginTop: 10 }}>
           Export Map PNG + Haplotype List
         </button>
-      </div>
+      </div>      
     </div>
+
   </div>
 );
 

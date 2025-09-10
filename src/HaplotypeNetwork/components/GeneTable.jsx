@@ -60,7 +60,7 @@ const [showOnlySelected, setShowOnlySelected] = useState(false);
 const [viewMode, setViewMode] = useState("count");
 const [ednaMapping, setEdnaMapping] = useState({});
 const [tagMapping, setTagMapping] = useState({});
-const [locations, setLocations] = useState([1]);
+const [locations, setLocations] = useState([]);
 const [totalTableData, setTotalTableData] = useState([]);
 
 const selectedGenesSet = useMemo(() => new Set(externalSelectedGenes), [
@@ -134,6 +134,39 @@ const getSampleInfo = (geneName) => {
   return { sampleId, tag, info };
 };
 
+
+// 格式化經緯度：數值 → "90N" / "50W"
+const formatLatLon = (value, type) => {
+  if (value === null || value === undefined || value === "" || isNaN(value)) return "No information";
+
+  const num = parseFloat(value);
+  if (type === "lat") {
+    return Math.abs(num) + (num >= 0 ? "N" : "S");
+  } else if (type === "lon") {
+    return Math.abs(num) + (num >= 0 ? "E" : "W");
+  }
+  return value;
+};
+
+// 解析經緯度字串（例如 "100S", "60W"）→ 數值
+const parseLatLonWithDirection = (str, type) => {
+  if (!str || typeof str !== "string") return null;
+
+  const match = str.match(/^(\d+(?:\.\d+)?)([NSEW])$/i);
+  if (!match) return parseFloat(str) || null;
+
+  const value = parseFloat(match[1]);
+  const dir = match[2].toUpperCase();
+
+  if (dir === "N") return value;
+  if (dir === "E") return value;
+  if (dir === "S") return -value;
+  if (dir === "W") return -value;
+  return null;
+};
+
+
+
 // ======================================
 //  useEffect Hooks
 // ======================================
@@ -159,10 +192,19 @@ useEffect(() => {
   setTotalTableData([headers, ...rows]);
 }, [csvContent]);
 
+
+
 // 3️⃣ hapHeaders 傳回父層
+const prevHapHeadersRef = useRef();
+
 useEffect(() => {
-  onHapHeadersChange?.(hapHeaders);
-}, [hapHeaders]);
+  if (JSON.stringify(prevHapHeadersRef.current) !== JSON.stringify(hapHeaders)) {
+    onHapHeadersChange?.(hapHeaders);
+    prevHapHeadersRef.current = hapHeaders;
+  }
+}, [hapHeaders, onHapHeadersChange]);
+
+
 
 // 4️⃣ hapColors 設定
 useEffect(() => {
@@ -215,11 +257,12 @@ useEffect(() => {
     let cx = null,
       cy = null;
 
-    if (!isNaN(parseFloat(edna.Celong1)) && !isNaN(parseFloat(edna.Celat2))) {
-      const result = convertLatLonToXY(parseFloat(edna.Celat2), parseFloat(edna.Celong1));
+    if (!isNaN(parseFloat(edna.Celong1Value)) && !isNaN(parseFloat(edna.Celat2Value))) {
+      const result = convertLatLonToXY(edna.Celat2Value, edna.Celong1Value);
       cx = result.cx;
       cy = result.cy;
     }
+
 
     cityMap[loc] = { coordinates: { cx, cy }, genes: [] };
   });
@@ -280,17 +323,29 @@ useEffect(() => {
     if (!id) return;
 
     ids.add(id);
+
+    const rawLon = row["Celong1"] || "";
+    const rawLat = row["Celat2"] || "";
+
+    const parsedLon = parseLatLonWithDirection(String(rawLon).trim(), "lon");
+    const parsedLat = parseLatLonWithDirection(String(rawLat).trim(), "lat");
+
     mapping[id] = {
       river: row["river"] || "No information",
       site: row["sample area"] || "No information",
-      Celong1: row["Celong1"] || "No information",
-      Celat2: row["Celat2"] || "No information",
+      // 保存數值版（給地圖算座標用）
+      Celong1Value: parsedLon,
+      Celat2Value: parsedLat,
+      // 保存字母版（給 table 顯示用）
+      Celong1: formatLatLon(parsedLon, "lon"),
+      Celat2: formatLatLon(parsedLat, "lat"),
     };
   });
 
   setEdnaMapping(mapping);
   setLocations(Array.from(ids));
 }, [eDnaSampleContent]);
+
 
 // 8️⃣ Tag Mapping
 useEffect(() => {

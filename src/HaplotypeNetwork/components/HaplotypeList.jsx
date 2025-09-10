@@ -30,7 +30,7 @@ const HaplotypeList = ({
   return (
     <div
       style={{
-        marginTop: "210px",
+        marginTop: "130px",
         width: "250px",
       }}
     >

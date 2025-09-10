@@ -14,6 +14,10 @@ function SequencealignmentAPP({ haplotypeContent }) {
  
   const scrollingSideRef = useRef(null);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editInput, setEditInput] = useState("");
+
+
 
   // 當 haplotypeContent 更新時解析 FASTA 序列
   useEffect(() => {
@@ -92,49 +96,55 @@ function SequencealignmentAPP({ haplotypeContent }) {
   };
 
   // 區段編輯：將選取區段替換為使用者輸入內容
-  const handlePartialEdit = () => {
-    if (selectedPositions.size === 0) return;
-    const newSeqInput = prompt("輸入新的序列 (A/T/C/G)，會依區段長度自動補-");
-    if (!newSeqInput) return;
-    const sanitized = newSeqInput.toUpperCase().replace(/[^ATCG]/g, "");
-    const ranges = getMergedRangesFromPositions();
-    if (ranges.length === 0) return;
+const handlePartialEdit = () => {
+  if (selectedPositions.size === 0) return;
+  setIsEditing(true);
+  setEditInput(""); // 清空初始輸入
+};
 
-    const updated = sequences.map((seq) => {
-      let seqChars = seq.sequence.split("");
-      for (const [start, end] of ranges) {
-        const len = end - start + 1;
-        const padded = sanitized.padEnd(len, "-").slice(0, len);
-        for (let i = 0; i < len; i++) {
-          seqChars[start + i] = padded[i];
-        }
+const applyEditInput = () => {
+  const sanitized = editInput.toUpperCase().replace(/[^ATCG\-]/g, "");
+  const ranges = getMergedRangesFromPositions();
+  if (ranges.length === 0) return;
+
+  const updated = sequences.map((seq) => {
+    let seqChars = seq.sequence.split("");
+    for (const [start, end] of ranges) {
+      const len = end - start + 1;
+      const padded = sanitized.padEnd(len, "-").slice(0, len);
+      for (let i = 0; i < len; i++) {
+        seqChars[start + i] = padded[i];
       }
-      return { ...seq, sequence: seqChars.join("") };
-    });
+    }
+    return { ...seq, sequence: seqChars.join("") };
+  });
 
-    saveToHistory(updated);
-    setSelectedPositions(new Set());
-  };
+  saveToHistory(updated);
+  setSelectedPositions(new Set());
+  setIsEditing(false);
+  setEditInput("");
+};
+
 
   // 區段刪除：將選取區段設為 '-'
-  const handlePartialDelete = () => {
-    if (selectedPositions.size === 0) return;
-    const ranges = getMergedRangesFromPositions();
-    if (ranges.length === 0) return;
+const handlePartialDelete = () => {
+  if (selectedPositions.size === 0) return;
+  const ranges = getMergedRangesFromPositions();
+  if (ranges.length === 0) return;
 
-    const updated = sequences.map((seq) => {
-      let seqChars = seq.sequence.split("");
-      for (const [start, end] of ranges) {
-        for (let i = start; i <= end; i++) {
-          seqChars[i] = "-";
-        }
-      }
-      return { ...seq, sequence: seqChars.join("") };
-    });
+  const updated = sequences.map((seq) => {
+    let seqChars = seq.sequence.split("");
+    for (const [start, end] of ranges.reverse()) {
+      seqChars.splice(start, end - start + 1); // 直接刪除
+    }
+    return { ...seq, sequence: seqChars.join("") };
+  });
 
-    saveToHistory(updated);
-    setSelectedPositions(new Set());
-  };
+  saveToHistory(updated);
+  setSelectedPositions(new Set());
+};
+
+
 
   // 切換位置是否被選取
   const togglePosition = (pos) => {
@@ -162,7 +172,7 @@ function SequencealignmentAPP({ haplotypeContent }) {
         <span
           key={index}
           className={`${bgClass} ${isSelected ? "pos-selected" : ""}`}
-          title={`位置 ${index + 1}, 字元: ${char}`}
+          title={`Location ${index + 1}, character: ${char}`}
         >
           {char}
         </span>
@@ -226,24 +236,47 @@ const CustomInnerElement = React.forwardRef(({ children, ...rest }, ref) => (
       <div className="search-container">
         <input
           type="text"
-          placeholder="搜尋序列或 ID"
+          placeholder="Search sequence or ID"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button onClick={() => setSearchTerm("")}>清除</button>
+        <button onClick={() => setSearchTerm("")}>Clear</button>
       </div>
 
       {/* 功能按鈕列 */}
       <div style={{ marginBottom: 10, display: "flex", gap: 10 }}>
         <button onClick={handlePartialEdit} disabled={selectedPositions.size === 0} title="編輯所有選取位置字元">
-          區段編輯
+          edit
         </button>
         <button onClick={handlePartialDelete} disabled={selectedPositions.size === 0} title="刪除所有選取位置字元">
-          區段刪除
+          delete
         </button>
-        <button onClick={handleUndo} disabled={history.length === 0}>上一步</button>
-        <button onClick={handleRedo} disabled={redoStack.length === 0}>恢復</button>
+        <button onClick={handleUndo} disabled={history.length === 0}>Previous step</button>
+        <button onClick={handleRedo} disabled={redoStack.length === 0}>recover</button>
       </div>
+
+      {isEditing && (
+  <div style={{ marginBottom: 10 }}>
+    <label>
+      Enter new sequence（A/T/C/G/-）：
+      <input
+        type="text"
+        value={editInput}
+        onChange={(e) =>
+          setEditInput(e.target.value.toUpperCase().replace(/[^ATCG\-]/g, ""))
+        }
+        style={{ marginLeft: 10, fontSize: 16, width: 300 }}
+      />
+    </label>
+    <button onClick={applyEditInput} style={{ marginLeft: 10 }}>
+      confirm
+    </button>
+    <button onClick={() => setIsEditing(false)} style={{ marginLeft: 5 }}>
+      Cancel
+    </button>
+  </div>
+)}
+
 
       {/* 主視圖容器 */}
       <div className="alignment-wrapper" style={{ display: "flex", border: "1px solid #ccc" }}>

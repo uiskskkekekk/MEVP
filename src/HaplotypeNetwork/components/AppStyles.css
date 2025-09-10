@@ -37,15 +37,15 @@
 /* 地圖容器 */
 .map-container {
   position: relative; /* 相對定位 */
-  width: 800px; /* 設置容器寬度 */
-  height: 1000px; /* 設置容器高度 */
+  width:100px; /* 設置容器寬度 */
+  height: 100px; /* 設置容器高度 */
 }
 
 /* 地圖容器 */
 .map-containerFiltered {
   position: relative; /* 相對定位 */
-  width: 465px; /* 設置容器寬度 */
-  height: 658.5px; /* 設置容器高度 */
+  width: 300px; /* 設置容器寬度 */
+  height: 300px; /* 設置容器高度 */
 }
 
 .map-container svg {
@@ -70,7 +70,7 @@
   left: 0;
   width: 800px;  /* 設置背景寬度與地圖一致 */
   height: 1000px; /* 設置背景高度與地圖一致 */
-  background-color: rgb(198, 12, 12); /* 設置背景顏色為灰色 */
+  background-color: rgb(21, 21, 21); /* 設置背景顏色為灰色 */
   z-index: 0; /* 確保背景在其他元素之下 */
 }
 
@@ -85,7 +85,7 @@
   background-color: rgba(191, 191, 193, 0.85);
   padding: 4px 8px;
   border-radius: 5px;
-  font-size: 12px;
+  font-size: 15px;
   font-family: monospace;
   color: rgb(250, 46, 5);
   user-select: none;

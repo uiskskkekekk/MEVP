@@ -1,10 +1,6 @@
-// GeneSelector.jsx
-// 選擇特定基因並進行相似度比對，顯示相關比對結果
-
 import React, { useState } from "react";
 import { FixedSizeList as List } from "react-window";
 import "../components/AppStyles.css";
-
 
 const GeneSelector = ({
   genes,
@@ -21,11 +17,17 @@ const GeneSelector = ({
   const [progress, setProgress] = useState(null);
   const [results, setResults] = useState([]);
   const [resultsPage, setResultsPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState(""); // New state for search query
+
+  // Filter genes based on search query
+  const filteredGenes = genes.filter((gene) =>
+    gene.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // 分頁設定
   const pageSize = 15;
-  const totalPages = Math.ceil(genes.length / pageSize);
-  const currentGenes = genes.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const totalPages = Math.ceil(filteredGenes.length / pageSize);
+  const currentGenes = filteredGenes.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const resultsPerPage = 100;
   const resultsTotalPages = Math.ceil(results.length / resultsPerPage);
@@ -98,26 +100,47 @@ const GeneSelector = ({
   return (
     <div className="flex flex-gap-20 align-start">
       {/* 左側：基因列表區域 */}
-      <div className="flex flex-column flex-gap-5" style={{ minWidth: "220px" }}>
-        <button className="button" onClick={() => { resetSelection(); showAllGenes(); }}>
+      <div className="flex flex-column flex-gap-5" style={{ minWidth: "220px" ,  marginRight: "10px" }}>
+        <div
+          className="gene-selector-header"
+          onClick={() => { resetSelection(); showAllGenes(); }}
+          style={{ cursor: 'pointer', color: 'blue' }}
+        >
           Select genes
-        </button>
+        </div>
+
+        {/* 搜尋框 */}
+        <input
+          type="text"
+          placeholder="Search genes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            marginBottom: "10px",
+            padding: "5px",
+            border: "1px solid #aaa",
+            borderRadius: "4px",
+            width: "100%",
+          }}
+        />
 
         {currentGenes.map((gene) => (
-          <button
+          <div
             key={gene.name}
             onClick={() => handleSelect(gene.name)}
-            className="button"
+            className="gene-list-item"
             style={{
               backgroundColor: selectedGene === gene.name ? "#cde" : geneColors[gene.name] || "#fff",
               border: "1px solid #aaa",
               padding: "4px 10px",
               color: "#000",
               cursor: "pointer",
+              borderRadius: "4px",
+              margin: "2px 0",
             }}
           >
             {gene.name}
-          </button>
+          </div>
         ))}
 
         <div className="pagination-controls">

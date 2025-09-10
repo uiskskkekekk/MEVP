@@ -1,3 +1,8 @@
+:root {
+  --char-width: 15px;
+  --char-gap: 4px; /* 控制字元與 checkbox 間距 */
+}
+
 /* 容器基本樣式 */
 .alignment-container {
   font-family: 'Courier New', monospace;
@@ -40,10 +45,8 @@
 
 .shared-scroll-wrapper {
   overflow-y: scroll;
- 
   border-right: 1px solid #ececec;
 }
-
 
 .sequence-id-cell {
   display: flex;
@@ -92,23 +95,24 @@
   height: 20px;
   box-sizing: border-box;
   padding-left: 10px;
+  gap: var(--char-gap);
+  font-family: 'Courier New', monospace;
 }
 
 .right-header label {
   display: inline-block;
-  width: 15px;
+  width: var(--char-width);
   height: 30px;
-  border-left: 1px solid #ddd;
   text-align: center;
   cursor: pointer;
   user-select: none;
   vertical-align: middle;
   line-height: 10px;
   box-sizing: border-box;
-}
-
-.right-header label:last-child {
-  border-right: 1px solid #ddd;
+  /* 移除 border 避免寬度誤差 */
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
 .right-header input[type="checkbox"] {
@@ -138,19 +142,20 @@
   padding-left: 10px;
   white-space: nowrap;
   user-select: none;
+  gap: var(--char-gap);
 }
 
 /* 單一字元樣式 */
 .sequence-scroll-line span {
   display: inline-block;
-  width: 15px;
+  width: var(--char-width);
   text-align: center;
   user-select: none;
 }
 
 /* 被選取的字元框線 */
 .pos-selected {
-  outline: 2px solid orange;
+  outline: 2px solid rgb(5, 3, 0);
   cursor: pointer;
 }
 

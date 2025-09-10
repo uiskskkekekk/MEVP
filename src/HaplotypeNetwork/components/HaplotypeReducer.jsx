@@ -53,7 +53,7 @@ const HaplotypeReducer = () => {
   };
 
   return (
-    <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #ccc" }}>
+    <div style={{ marginTop: "150px", padding: "1rem", border: "1px solid #ccc" }}>
       <h3> Haplotype Reduce tool</h3>
       <form onSubmit={handleSubmit}>
         {/* FASTA file */}

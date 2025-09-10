@@ -71,6 +71,11 @@ const FilteredTaiwanMapComponent = ({
   const [imgH, setImgH] = useState(null);
   const [lonRange, setLonRange] = useState([null, null]);
   const [latRange, setLatRange] = useState([null, null]);
+const [lonDirMin, setLonDirMin] = useState("E");
+  const [lonDirMax, setLonDirMax] = useState("E");
+  const [latDirMin, setLatDirMin] = useState("N");
+  const [latDirMax, setLatDirMax] = useState("N");
+
 
  const [mapUrl, setMapUrl] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -132,21 +137,15 @@ const FilteredTaiwanMapComponent = ({
   const handleSelectAll = () => setSelectedGenes(filteredGeneList);
   const handleClearAll = () => setSelectedGenes([]);
 
-  // ---------- 地圖切換 ----------
+ // --- 地圖切換與上傳 ---
   const handleSwitchMap = (map) => {
-    if (map.id === "Customize") {
-      setActiveMapId("Customize");
-      setMapImage(null);
-      return;
-    }
-
     const img = new Image();
     img.src = map.src;
     img.onload = () => {
       let newWidth = img.naturalWidth;
       let newHeight = img.naturalHeight;
 
-      const maxSize = 1000;
+      const maxSize = 500;
       if (Math.max(newWidth, newHeight) > maxSize) {
         const scale = maxSize / Math.max(newWidth, newHeight);
         newWidth = Math.round(newWidth * scale);
@@ -157,40 +156,53 @@ const FilteredTaiwanMapComponent = ({
       setMapImage(map.src);
       setImgW(newWidth);
       setImgH(newHeight);
-      setLonRange(map.defaultLonRange || [120, 122]);
+      setLonRange(map.defaultLonRange || [120, 122]);      
       setLatRange(map.defaultLatRange || [21.5, 25.5]);
+
+setLonDirMin(map.lonDirMin || "E");
+    setLonDirMax(map.lonDirMax || "E");
+    setLatDirMin(map.latDirMin || "N");
+    setLatDirMax(map.latDirMax || "N");
+  
+
+    // 計算真正的範圍值
+    setLonRange([
+      Math.abs(map.defaultLonRange[0]) * (map.lonDirMin === "W" ? -1 : 1),
+      Math.abs(map.defaultLonRange[1]) * (map.lonDirMax === "W" ? -1 : 1),
+    ]);
+
+    setLatRange([
+      Math.abs(map.defaultLatRange[0]) * (map.latDirMin === "S" ? -1 : 1),
+      Math.abs(map.defaultLatRange[1]) * (map.latDirMax === "S" ? -1 : 1),
+    ]);
     };
   };
 
   // ---------- 上傳自訂地圖 ----------
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        let newWidth = img.naturalWidth;
-        let newHeight = img.naturalHeight;
+const handleImageUpload = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-        const maxSize = 1000;
-        if (Math.max(newWidth, newHeight) > maxSize) {
-          const scale = maxSize / Math.max(newWidth, newHeight);
-          newWidth = Math.round(newWidth * scale);
-          newHeight = Math.round(newHeight * scale);
-        }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    let newWidth = img.naturalWidth;
+    let newHeight = img.naturalHeight;
 
-         setActiveMapId(map.id);
-        setMapImage(map.src);
-        setImgW(newWidth);
-        setImgH(newHeight);
-        setLonRange(map.defaultLonRange);
-        setLatRange(map.defaultLatRange);
-
-        setMapLoaded(false);    // 切換時重置 loaded
-      };
-      img.src = url;
+    const maxSize = 500;
+    if (Math.max(newWidth, newHeight) > maxSize) {
+      const scale = maxSize / Math.max(newWidth, newHeight);
+      newWidth = Math.round(newWidth * scale);
+      newHeight = Math.round(newHeight * scale);
     }
+
+    setActiveMapId("Customize");
+    setMapImage(url);
+    setImgW(newWidth);
+    setImgH(newHeight);
   };
+  img.src = url;
+};
 
   // ---------- 坐標計算 ----------
   const offsetX = (conW - imgW) / 2;
@@ -271,11 +283,17 @@ const FilteredTaiwanMapComponent = ({
     }
   };
 
-  const decimalToDegreeMinute = (decimal) => {
-    const deg = Math.floor(decimal);
-    const min = Math.round((decimal - deg) * 60);
-    return `${deg}°${min}′`;
-  };
+  const decimalToDegreeMinuteWithDir = (decimal, type) => {
+  const absVal = Math.abs(decimal);
+  const deg = Math.floor(absVal);
+  const min = Math.round((absVal - deg) * 60);
+
+  if (type === "lon") {
+    return `${deg}°${min}′ ${decimal >= 0 ? "E" : "W"}`;
+  } else {
+    return `${deg}°${min}′ ${decimal >= 0 ? "N" : "S"}`;
+  }
+};
 
   return (
   <div style={{ display: "flex", flexDirection: "row", gap: 16 }}>
@@ -285,86 +303,19 @@ const FilteredTaiwanMapComponent = ({
     display: "flex",
     flexDirection: "column",
     gap: 6,
-    minWidth: 500,
+    minWidth: 300,
     alignSelf: "flex-start",
   }}
 >
   {/* 上傳與調整區域 */}
-  <label style={{ marginTop: 8 }}>Upload Map PNG:</label>
-  <input type="file" accept="image/png" onChange={handleImageUpload} />
-
-  <div style={{ marginTop: 8 }}>
-    <label>Image Width:</label>
-    <input
-      type="number"
-      value={imgW}
-      onChange={(e) => setImgW(Number(e.target.value))}
-      className="small-input"
-    />
-</div>
-<div style={{ marginTop: 8 }}>
-    <label> Image Height:</label>
-    <input
-      type="number"
-      value={imgH}
-      onChange={(e) => setImgH(Number(e.target.value))}
-      className="small-input"
-    />
-    <button
-      style={{ marginLeft: 8 }}
-      onClick={() => {
-        setImgW(Math.round(imgW * 1.25));
-        setImgH(Math.round(imgH * 1.25));
-      }}
-    >
-      🔍+
-    </button>
-    <button
-      style={{ marginLeft: 4 }}
-      onClick={() => {
-        setImgW(Math.round(imgW * 0.8));
-        setImgH(Math.round(imgH * 0.8));
-      }}
-    >
-      🔍-
-    </button>
-  </div>
-
+  <label style={{ marginTop: 8 }}></label>
   <div>
-    <label>Longitude Range:</label>
-    <input
-      type="number"
-      value={lonRange[0]}
-      onChange={(e) => setLonRange([+e.target.value, lonRange[1]])}
-      className="small-input"
-    />
-    -
-    <input
-      type="number"
-      value={lonRange[1]}
-      onChange={(e) => setLonRange([lonRange[0], +e.target.value])}
-      className="small-input"
-    />
-  </div>
-  <div>
-    <label>Latitude Range:</label>
-    <input
-      type="number"
-      value={latRange[0]}
-      onChange={(e) => setLatRange([+e.target.value, latRange[1]])}
-      className="small-input"
-    />
-    -
-    <input
-      type="number"
-      value={latRange[1]}
-      onChange={(e) => setLatRange([latRange[0], +e.target.value])}
-      className="small-input"
-    />
+    <label>Upload Map PNG: </label>
+    <input type="file" accept="image/png" onChange={handleImageUpload} />
   </div>
 
-  {/* 地圖圖片切換按鈕區域 */}
-  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+{/* 地圖圖片切換按鈕區域 */}
+  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 , width: 300}}>
     {mapImages.map((map) => (
       <button
         key={map.id}
@@ -398,6 +349,139 @@ const FilteredTaiwanMapComponent = ({
       Customize Map
     </button>
   </div>
+
+
+
+
+
+
+  <div style={{ marginTop: 8 }}>
+    <label>Image Width:</label>
+    <input
+      type="number"
+      value={imgW ?? ""}
+      onChange={(e) => setImgW(Number(e.target.value))}
+      className="small-input"
+    />
+</div>
+<div style={{ marginTop: 8 }}>
+    <label> Image Height:</label>
+    <input
+      type="number"
+      value={imgH ?? ""}
+      onChange={(e) => setImgH(Number(e.target.value))}
+      className="small-input"
+    />
+    <button
+      style={{ marginLeft: 8 }}
+      onClick={() => {
+        setImgW(Math.round(imgW * 1.25));
+        setImgH(Math.round(imgH * 1.25));
+      }}
+    >
+      🔍+
+    </button>
+    <button
+      style={{ marginLeft: 4 }}
+      onClick={() => {
+        setImgW(Math.round(imgW * 0.8));
+        setImgH(Math.round(imgH * 0.8));
+      }}
+    >
+      🔍-
+    </button>
+  </div>
+
+  {/* Longitude Range with Direction */}
+        <div style={{ marginTop: 8 }}>
+          <label>Longitude Range:</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <select
+              value={lonDirMin}
+              onChange={(e) => {
+                setLonDirMin(e.target.value);
+                setLonRange([Math.abs(lonRange[0]) * (e.target.value === "E" ? 1 : -1), lonRange[1]]);
+              }}
+            >
+              <option value="E">E</option>
+              <option value="W">W</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(lonRange[0])}
+              onChange={(e) =>
+                setLonRange([+e.target.value * (lonDirMin === "E" ? 1 : -1), lonRange[1]])
+              }
+              className="small-input"
+            />
+            -
+            <select
+              value={lonDirMax}
+              onChange={(e) => {
+                setLonDirMax(e.target.value);
+                setLonRange([lonRange[0], Math.abs(lonRange[1]) * (e.target.value === "E" ? 1 : -1)]);
+              }}
+            >
+              <option value="E">E</option>
+              <option value="W">W</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(lonRange[1])}
+              onChange={(e) =>
+                setLonRange([lonRange[0], +e.target.value * (lonDirMax === "E" ? 1 : -1)])
+              }
+              className="small-input"
+            />
+          </div>
+        </div>
+
+        {/* Latitude Range with Direction */}
+        <div style={{ marginTop: 8 }}>
+          <label>Latitude Range:</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <select
+              value={latDirMin}
+              onChange={(e) => {
+                setLatDirMin(e.target.value);
+                setLatRange([Math.abs(latRange[0]) * (e.target.value === "N" ? 1 : -1), latRange[1]]);
+              }}
+            >
+              <option value="N">N</option>
+              <option value="S">S</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(latRange[0])}
+              onChange={(e) =>
+                setLatRange([+e.target.value * (latDirMin === "N" ? 1 : -1), latRange[1]])
+              }
+              className="small-input"
+            />
+            -
+            <select
+              value={latDirMax}
+              onChange={(e) => {
+                setLatDirMax(e.target.value);
+                setLatRange([latRange[0], Math.abs(latRange[1]) * (e.target.value === "N" ? 1 : -1)]);
+              }}
+            >
+              <option value="N">N</option>
+              <option value="S">S</option>
+            </select>
+            <input
+              type="number"
+              value={Math.abs(latRange[1])}
+              onChange={(e) =>
+                setLatRange([latRange[0], +e.target.value * (latDirMax === "N" ? 1 : -1)])
+              }
+              className="small-input"
+            />
+          </div>
+        </div>
+
+  
+
 </div>
 
 
@@ -534,9 +618,9 @@ const FilteredTaiwanMapComponent = ({
             background: "rgba(122, 120, 120, 0.53)",
           }}
         >
-          longitude: {decimalToDegreeMinute(latLon.lon)}E
-          <br />
-          latitude: {decimalToDegreeMinute(latLon.lat)}N
+          longitude: {decimalToDegreeMinuteWithDir(parseFloat(latLon.lon), "lon")}
+            <br />
+            latitude: {decimalToDegreeMinuteWithDir(parseFloat(latLon.lat), "lat")}
         </div>
       </div>
 
@@ -596,6 +680,8 @@ const FilteredTaiwanMapComponent = ({
         </div>
       </div>
     </div>
+
+
   </div>
 );
 

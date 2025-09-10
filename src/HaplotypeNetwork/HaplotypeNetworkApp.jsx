@@ -52,7 +52,7 @@ const HaplotypeNetworkApp = ({
   // Refs & Constants
   // =======================
   const workerRef = useRef(null);
-  const genesPerPage = 15;
+  const genesPerPage = 10;
   const totalPages = Math.ceil(genes.length / genesPerPage);
   const paginatedGenes = genes.slice(
     (currentPage - 1) * genesPerPage,
@@ -331,6 +331,41 @@ const HaplotypeNetworkApp = ({
         <div className="section">
           <HaplotypeNetwork />
           <HaplotypeReducer />
+
+          {/* GeneTable 僅執行功能，不顯示 UI */}
+          <div style={{ display: "none" }}>
+            <GeneTable
+              fileName={initialFileName}
+              eDnaSampleContent={eDnaSampleContent}
+              eDnaTagsContent={eDnaTagsContent}
+              csvContent={csvContent}
+              csvFileName={csvFileName}
+              genes={genes}
+              currentPage={currentPage}
+              itemsPerPage={genesPerPage}
+              setCurrentPage={setCurrentPage}
+              updateMapData={updateMapData}
+              geneColors={viewMode === "total" ? hapColors : geneColors}
+              setCityGeneData={setCityGeneData}
+              setTotalCityGeneData={setTotalCityGeneData}
+              onViewModeChange={setViewMode}
+              onHapColorsChange={setHapColors}
+              onEditGeneCount={handleEditGeneCount}
+              onEditGeneCountBulk={handleEditGeneCountBulk}
+              selectedGenes={selectedGenes}
+              onSelectedGenesChange={setSelectedGenes}
+              selectedLocations={cityVisibility}
+              onSelectedLocationsChange={setCityVisibility}
+              imgW={mapSettings.imgW}
+              imgH={mapSettings.imgH}
+              lonRange={mapSettings.lonRange}
+              latRange={mapSettings.latRange}
+              onHapHeadersChange={setHapHeaders}
+              hapPage={hapPage}
+              onHapPageChange={setHapPage}
+              hapsPerPage={hapsPerPage}
+            />
+          </div>
         </div>
       )}
     </div>
