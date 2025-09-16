@@ -486,13 +486,14 @@ const handleEditGeneCount = (geneName, location, newValue) => {
   <div style={{ overflowX: "auto", padding: "0px" }}>
     <h2>Gene information table</h2>
 
-    {/* 地圖資訊 */}
+    {/* 地圖資訊 
     <div>
       <div>Map size: {imgW} x {imgH}</div>
       <div>
         Lon: {lonRange[0]} - {lonRange[1]} | Lat: {latRange[0]} - {latRange[1]}
       </div>
     </div>
+    */}
 
     {/* 切換表格類型 */}
     <div style={{ marginBottom: "10px" }}>

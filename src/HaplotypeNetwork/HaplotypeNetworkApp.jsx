@@ -172,17 +172,26 @@ const HaplotypeNetworkApp = ({
   // Render
   // =======================
   return (
-    <div className="app-container">
-      {/* Section Buttons */}
-      <div className="button-group">
-        <button onClick={() => setActiveSection("taiwanMap")}>All Sequences</button>
-        <button onClick={() => setActiveSection("geneComponents")}>Sequences Components</button>
-        <button onClick={() => setActiveSection("haplotypeNetwork")}>Haplotype Network</button>
-      </div>
+  <div className="app-container">
+    {/* ====== 上方區域：Section 切換按鈕 ====== */}
+    <div className="button-group">
+      <button onClick={() => setActiveSection("taiwanMap")}>
+        All Sequences
+      </button>
+      <button onClick={() => setActiveSection("geneComponents")}>
+        Sequences Components
+      </button>
+      <button onClick={() => setActiveSection("haplotypeNetwork")}>
+        Haplotype Network
+      </button>
+    </div>
 
-      {/* Taiwan Map Section */}
-      {activeSection === "taiwanMap" && (
-        <div className="section flex-container">
+    {/* ====== 區塊 1：Taiwan Map 區 ====== */}
+    {activeSection === "taiwanMap" && (
+      <div className="section flex-container">
+
+        {/* --- 左邊：台灣地圖 --- */}
+        <div className="map-box">
           <TaiwanMapComponent
             genes={genes}
             cityGeneData={cityGeneData}
@@ -195,53 +204,24 @@ const HaplotypeNetworkApp = ({
             cityUpdateFlags={cityUpdateFlags}
             onMapSettingsChange={setMapSettings}
           />
+        </div>
 
-          <div className="right-panel">
-            <div className="tables-row">
-              <HaplotypeList
-                viewMode={viewMode}           // ✅ 判斷模式
-                paginatedGenes={paginatedGenes}
-                geneColors={geneColors}
-                hapHeaders={hapHeaders}       // ✅ CSV headers
-                hapColors={hapColors}         // ✅ CSV 顏色
-                hapPage={hapPage}             // ✅ 共用分頁
-                hapsPerPage={hapsPerPage}
-              />
+        {/* --- 右邊：HaplotypeList 與 GeneTable --- */}
+        <div className="tables-row">
 
-              <GeneTable
-                fileName={initialFileName}
-                eDnaSampleContent={eDnaSampleContent}
-                eDnaTagsContent={eDnaTagsContent}
-                csvContent={csvContent}        // ✅ 新增
-                csvFileName={csvFileName}      // ✅ 新增
-                genes={genes}
-                currentPage={currentPage}
-                itemsPerPage={genesPerPage}
-                setCurrentPage={setCurrentPage}
-                updateMapData={updateMapData}
-                geneColors={viewMode === "total" ? hapColors : geneColors}
-                setCityGeneData={setCityGeneData}
-                setTotalCityGeneData={setTotalCityGeneData}
-                onViewModeChange={setViewMode}
-                onHapColorsChange={setHapColors}
-                onEditGeneCount={handleEditGeneCount}
-                onEditGeneCountBulk={handleEditGeneCountBulk}
-                selectedGenes={selectedGenes}
-                onSelectedGenesChange={setSelectedGenes}
-                selectedLocations={cityVisibility}
-                onSelectedLocationsChange={setCityVisibility}
-                imgW={mapSettings.imgW}
-                imgH={mapSettings.imgH}
-                lonRange={mapSettings.lonRange}
-                latRange={mapSettings.latRange}
-                onHapHeadersChange={setHapHeaders} // ✅ 回傳 hapHeaders
-                hapPage={hapPage}                  // ✅ 共用分頁
-                onHapPageChange={setHapPage}       // ✅ 分頁 setter
-                hapsPerPage={hapsPerPage}
-              />
-            </div>
+          {/* --- HaplotypeList 區 --- */}
+          <div className="haplotype-section">
+            <HaplotypeList
+              viewMode={viewMode}
+              paginatedGenes={paginatedGenes}
+              geneColors={geneColors}
+              hapHeaders={hapHeaders}
+              hapColors={hapColors}
+              hapPage={hapPage}
+              hapsPerPage={hapsPerPage}
+            />
 
-            {/* Pagination */}
+            {/* 分頁控制 (僅在非 total 模式顯示) */}
             {viewMode !== "total" && (
               <div className="pagination">
                 <button
@@ -250,9 +230,61 @@ const HaplotypeNetworkApp = ({
                 >
                   Previous
                 </button>
-                <span>
-                  {currentPage} / {totalPages}
-                </span>
+                <span>{currentPage} / {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* --- GeneTable 區 --- */}
+          <div className="gene-section">
+            <GeneTable
+              fileName={initialFileName}
+              eDnaSampleContent={eDnaSampleContent}
+              eDnaTagsContent={eDnaTagsContent}
+              csvContent={csvContent}
+              csvFileName={csvFileName}
+              genes={genes}
+              currentPage={currentPage}
+              itemsPerPage={genesPerPage}
+              setCurrentPage={setCurrentPage}
+              updateMapData={updateMapData}
+              geneColors={viewMode === "total" ? hapColors : geneColors}
+              setCityGeneData={setCityGeneData}
+              setTotalCityGeneData={setTotalCityGeneData}
+              onViewModeChange={setViewMode}
+              onHapColorsChange={setHapColors}
+              onEditGeneCount={handleEditGeneCount}
+              onEditGeneCountBulk={handleEditGeneCountBulk}
+              selectedGenes={selectedGenes}
+              onSelectedGenesChange={setSelectedGenes}
+              selectedLocations={cityVisibility}
+              onSelectedLocationsChange={setCityVisibility}
+              imgW={mapSettings.imgW}
+              imgH={mapSettings.imgH}
+              lonRange={mapSettings.lonRange}
+              latRange={mapSettings.latRange}
+              onHapHeadersChange={setHapHeaders}
+              hapPage={hapPage}
+              onHapPageChange={setHapPage}
+              hapsPerPage={hapsPerPage}
+            />
+
+            {/* 分頁控制 (僅在非 total 模式顯示) */}
+            {viewMode !== "total" && (
+              <div className="pagination">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span>{currentPage} / {totalPages}</span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
@@ -263,113 +295,125 @@ const HaplotypeNetworkApp = ({
             )}
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {/* Gene Components Section */}
-      {activeSection === "geneComponents" && (
-        <div className="section flex-container">
-          <FilteredTaiwanMapComponent
+    {/* ====== 區塊 2：Gene Components 區 ====== */}
+    {activeSection === "geneComponents" && (
+      <div className="section flex-container">
+        <div className="tables-row">
+
+          {/* --- 左邊：Filtered Taiwan Map --- */}
+          <div className="map-box">
+            <FilteredTaiwanMapComponent
+              genes={genes}
+              cityUpdateFlags={cityUpdateFlags}
+              cityGeneData={cityGeneData}
+              selectedGene={selectedGene}
+              activeSimilarityGroup={activeSimilarityGroup}
+              onSelectedGenesChange={setSelectedGenes}
+              totalCityGeneData={totalCityGeneData}
+              geneColors={viewMode === "total" ? hapColors : geneColors}
+              onMapSettingsChange={setMapSettings}
+            />
+          </div>
+
+          {/* --- 右邊：Gene Selector --- */}
+          <div className="geneselector-section">
+            <GeneSelector
+              genes={genes}
+              selectedGene={selectedGene}
+              setSelectedGene={setSelectedGene}
+              showAllGenes={() => setSelectedGene(null)}
+              geneColors={geneColors}
+              setActiveSimilarityGroup={setActiveSimilarityGroup}
+            />
+          </div>
+
+          {/* --- 隱藏用 GeneTable (僅執行資料處理，不顯示 UI) --- */}
+          <div style={{ display: "none" }}>
+            <GeneTable
+              fileName={initialFileName}
+              eDnaSampleContent={eDnaSampleContent}
+              eDnaTagsContent={eDnaTagsContent}
+              csvContent={csvContent}
+              csvFileName={csvFileName}
+              genes={genes}
+              currentPage={currentPage}
+              itemsPerPage={genesPerPage}
+              setCurrentPage={setCurrentPage}
+              updateMapData={updateMapData}
+              geneColors={viewMode === "total" ? hapColors : geneColors}
+              setCityGeneData={setCityGeneData}
+              setTotalCityGeneData={setTotalCityGeneData}
+              onViewModeChange={setViewMode}
+              onHapColorsChange={setHapColors}
+              onEditGeneCount={handleEditGeneCount}
+              onEditGeneCountBulk={handleEditGeneCountBulk}
+              selectedGenes={selectedGenes}
+              onSelectedGenesChange={setSelectedGenes}
+              selectedLocations={cityVisibility}
+              onSelectedLocationsChange={setCityVisibility}
+              imgW={mapSettings.imgW}
+              imgH={mapSettings.imgH}
+              lonRange={mapSettings.lonRange}
+              latRange={mapSettings.latRange}
+              onHapHeadersChange={setHapHeaders}
+              hapPage={hapPage}
+              onHapPageChange={setHapPage}
+              hapsPerPage={hapsPerPage}
+            />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ====== 區塊 3：Haplotype Network 區 ====== */}
+    {activeSection === "haplotypeNetwork" && (
+      <div className="section">
+        <HaplotypeNetwork />
+        <HaplotypeReducer />
+
+        {/* --- 隱藏用 GeneTable (僅執行資料處理，不顯示 UI) --- */}
+        <div style={{ display: "none" }}>
+          <GeneTable
+            fileName={initialFileName}
+            eDnaSampleContent={eDnaSampleContent}
+            eDnaTagsContent={eDnaTagsContent}
+            csvContent={csvContent}
+            csvFileName={csvFileName}
             genes={genes}
-            cityUpdateFlags={cityUpdateFlags}
-            cityGeneData={cityGeneData}
-            selectedGene={selectedGene}
-            activeSimilarityGroup={activeSimilarityGroup}
-            onSelectedGenesChange={setSelectedGenes}
-            totalCityGeneData={totalCityGeneData}
+            currentPage={currentPage}
+            itemsPerPage={genesPerPage}
+            setCurrentPage={setCurrentPage}
+            updateMapData={updateMapData}
             geneColors={viewMode === "total" ? hapColors : geneColors}
-            onMapSettingsChange={setMapSettings}
+            setCityGeneData={setCityGeneData}
+            setTotalCityGeneData={setTotalCityGeneData}
+            onViewModeChange={setViewMode}
+            onHapColorsChange={setHapColors}
+            onEditGeneCount={handleEditGeneCount}
+            onEditGeneCountBulk={handleEditGeneCountBulk}
+            selectedGenes={selectedGenes}
+            onSelectedGenesChange={setSelectedGenes}
+            selectedLocations={cityVisibility}
+            onSelectedLocationsChange={setCityVisibility}
+            imgW={mapSettings.imgW}
+            imgH={mapSettings.imgH}
+            lonRange={mapSettings.lonRange}
+            latRange={mapSettings.latRange}
+            onHapHeadersChange={setHapHeaders}
+            hapPage={hapPage}
+            onHapPageChange={setHapPage}
+            hapsPerPage={hapsPerPage}
           />
-
-          <GeneSelector
-            genes={genes}
-            selectedGene={selectedGene}
-            setSelectedGene={setSelectedGene}
-            showAllGenes={() => setSelectedGene(null)}
-            geneColors={geneColors}
-            setActiveSimilarityGroup={setActiveSimilarityGroup}
-          />
-
-          {/* GeneTable 僅執行功能，不顯示 UI */}
-          <div style={{ display: "none" }}>
-            <GeneTable
-              fileName={initialFileName}
-              eDnaSampleContent={eDnaSampleContent}
-              eDnaTagsContent={eDnaTagsContent}
-              csvContent={csvContent}
-              csvFileName={csvFileName}
-              genes={genes}
-              currentPage={currentPage}
-              itemsPerPage={genesPerPage}
-              setCurrentPage={setCurrentPage}
-              updateMapData={updateMapData}
-              geneColors={viewMode === "total" ? hapColors : geneColors}
-              setCityGeneData={setCityGeneData}
-              setTotalCityGeneData={setTotalCityGeneData}
-              onViewModeChange={setViewMode}
-              onHapColorsChange={setHapColors}
-              onEditGeneCount={handleEditGeneCount}
-              onEditGeneCountBulk={handleEditGeneCountBulk}
-              selectedGenes={selectedGenes}
-              onSelectedGenesChange={setSelectedGenes}
-              selectedLocations={cityVisibility}
-              onSelectedLocationsChange={setCityVisibility}
-              imgW={mapSettings.imgW}
-              imgH={mapSettings.imgH}
-              lonRange={mapSettings.lonRange}
-              latRange={mapSettings.latRange}
-              onHapHeadersChange={setHapHeaders}
-              hapPage={hapPage}
-              onHapPageChange={setHapPage}
-              hapsPerPage={hapsPerPage}
-            />
-          </div>
         </div>
-      )}
+      </div>
+    )}
+  </div>
+);
 
-      {/* Haplotype Network Section */}
-      {activeSection === "haplotypeNetwork" && (
-        <div className="section">
-          <HaplotypeNetwork />
-          <HaplotypeReducer />
 
-          {/* GeneTable 僅執行功能，不顯示 UI */}
-          <div style={{ display: "none" }}>
-            <GeneTable
-              fileName={initialFileName}
-              eDnaSampleContent={eDnaSampleContent}
-              eDnaTagsContent={eDnaTagsContent}
-              csvContent={csvContent}
-              csvFileName={csvFileName}
-              genes={genes}
-              currentPage={currentPage}
-              itemsPerPage={genesPerPage}
-              setCurrentPage={setCurrentPage}
-              updateMapData={updateMapData}
-              geneColors={viewMode === "total" ? hapColors : geneColors}
-              setCityGeneData={setCityGeneData}
-              setTotalCityGeneData={setTotalCityGeneData}
-              onViewModeChange={setViewMode}
-              onHapColorsChange={setHapColors}
-              onEditGeneCount={handleEditGeneCount}
-              onEditGeneCountBulk={handleEditGeneCountBulk}
-              selectedGenes={selectedGenes}
-              onSelectedGenesChange={setSelectedGenes}
-              selectedLocations={cityVisibility}
-              onSelectedLocationsChange={setCityVisibility}
-              imgW={mapSettings.imgW}
-              imgH={mapSettings.imgH}
-              lonRange={mapSettings.lonRange}
-              latRange={mapSettings.latRange}
-              onHapHeadersChange={setHapHeaders}
-              hapPage={hapPage}
-              onHapPageChange={setHapPage}
-              hapsPerPage={hapsPerPage}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
 };
 
 export default HaplotypeNetworkApp;

@@ -60,6 +60,13 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
       .domain([1, maxCount || 1])
       .range([10 * scaleFactor, 30 * scaleFactor]); // 半徑隨 scaleFactor 改變
 
+
+    // ⚡ 隨機初始位置，避免所有節點一開始擠在中心
+    data.nodes.forEach((d) => {
+      d.x = Math.random() * width;
+      d.y = Math.random() * height;
+    });
+
     // 力導向模擬
     const sim = d3
       .forceSimulation(data.nodes)
@@ -70,21 +77,20 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
           .id((d) => d.id)
           .distance((d) => {
             if (d.source.groupId === d.target.groupId)
-              return 5 * scaleFactor;
+              return 25 * scaleFactor;
             const dist = d.distance;
             if (dist <= 0) return 50 * scaleFactor;
             if (dist <= 1) return 100 * scaleFactor;
-            if (dist <= 2) return 200 * scaleFactor;
-            if (dist <= 3) return 300 * scaleFactor;
-            if (dist <= 20) return 20 * scaleFactor;
-            return 30 * scaleFactor;
+            if (dist <= 2) return 150 * scaleFactor;
+            if (dist <= 3) return 200 * scaleFactor;
+            return 400 * scaleFactor;
           })
       )
-      .force("charge", d3.forceManyBody().strength(-60))
+      .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force(
         "collide",
-        d3.forceCollide().radius((d) => r(d.count) + 8 * scaleFactor)
+        d3.forceCollide().radius((d) => r(d.count) + 20 * scaleFactor)
       );
 
     // 繪製邊線與距離文字

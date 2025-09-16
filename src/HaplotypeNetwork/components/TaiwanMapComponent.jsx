@@ -460,9 +460,11 @@ useEffect(() => {
 
 return (
   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-    
-    {/* --- 最上方：Gene Map 切換按鈕 --- */}
+
+    {/* ────────────── 🔹 最上方：Gene Map 切換按鈕區 ────────────── */}
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+      {/* Gene Map 按鈕 */}
       <button
         onClick={() => setMapPage(0)}
         disabled={!hasCityGeneData}
@@ -479,6 +481,7 @@ return (
         Gene Map
       </button>
 
+      {/* Total quantity chart 按鈕 */}
       <button
         onClick={() => setMapPage(1)}
         disabled={!hasTotalCityGeneData}
@@ -495,6 +498,7 @@ return (
         Total quantity chart
       </button>
 
+      {/* 顯示目前 active map 資訊 */}
       <div
         style={{
           marginLeft: 12,
@@ -510,60 +514,56 @@ return (
       </div>
     </div>
 
-    {/* --- 上傳與設定區 + 地圖清單區 --- */}
-    <div style={{ display: "flex", gap: 16 }}>
-      {/* 左側：上傳與設定區 + 地圖清單 */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 , width:300 }}>
-        {/* 上傳與設定區 */}
+    {/* ────────────── 🔹 左右兩欄排版主區 ────────────── */}
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+
+      {/* ================= 左側：上傳 / 設定 / 地圖清單 ================= */}
+      <div style={{ width: 300, display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* 📁 上傳 PNG 圖片 */}
         <div>
           <label>Upload Map PNG: </label>
           <input type="file" accept="image/png" onChange={handleImageUpload} />
         </div>
 
-        {/* 地圖清單 */}
-        <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          minWidth: 300,
-          alignSelf: "flex-start",
-        }}
-      >
-        {mapImages.map((map) => (
+        {/* 🗺️ 地圖清單選擇 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {mapImages.map((map) => (
+            <button
+              key={map.id}
+              onClick={() => handleSwitchMap(map)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "1px solid #ccc",
+                background: activeMapId === map.id ? "#4cafef" : "#f0f0f0",
+                cursor: "pointer",
+              }}
+            >
+              {map.name}
+            </button>
+          ))}
+
+          {/* 自訂地圖 */}
           <button
-            key={map.id}
-            onClick={() => handleSwitchMap(map)}
+            onClick={() => {
+              setMapImage(null);
+              setActiveMapId("Customize");
+            }}
             style={{
               padding: "6px 10px",
               borderRadius: 6,
               border: "1px solid #ccc",
-              background: activeMapId === map.id ? "#4cafef" : "#f0f0f0",
+              background: activeMapId === "Customize" ? "#4cafef" : "#f0f0f0",
               cursor: "pointer",
+              textAlign: "center",
             }}
           >
-            {map.name}
+            Customize Map
           </button>
-        ))}
+        </div>
 
-        <button
-          onClick={() => {
-            setMapImage(null);
-            setActiveMapId("Customize");
-          }}
-          style={{
-            padding: "6px 10px",
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            background: activeMapId === "Customize" ? "#4cafef" : "#f0f0f0",
-            cursor: "pointer",
-            textAlign: "center",
-          }}
-        >
-          Customize Map
-        </button>
-      </div>
-
+        {/* 🖼️ 圖片寬高設定 + 縮放 */}
         <div style={{ marginTop: 8 }}>
           <label>Image Width: </label>
           <input
@@ -582,8 +582,10 @@ return (
             onChange={(e) => setImgH(Number(e.target.value))}
             className="small-input"
           />
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", marginLeft: 8 }}>
           <button
-            style={{ marginLeft: 8 }}
             onClick={() => {
               setImgW(Math.round(imgW * 1.25));
               setImgH(Math.round(imgH * 1.25));
@@ -591,8 +593,8 @@ return (
           >
             🔍+
           </button>
+
           <button
-            style={{ marginLeft: 4 }}
             onClick={() => {
               setImgW(Math.round(imgW * 0.8));
               setImgH(Math.round(imgH * 0.8));
@@ -602,7 +604,7 @@ return (
           </button>
         </div>
 
-        {/* Longitude Range */}
+        {/* 🌍 經度範圍設定 */}
         <div style={{ marginTop: 8 }}>
           <label>Longitude Range: </label>
           <div style={{ display: "flex", gap: 6 }}>
@@ -658,7 +660,7 @@ return (
           </div>
         </div>
 
-        {/* Latitude Range */}
+        {/* 🌎 緯度範圍設定 */}
         <div style={{ marginTop: 8 }}>
           <label>Latitude Range: </label>
           <div style={{ display: "flex", gap: 6 }}>
@@ -712,31 +714,45 @@ return (
               className="small-input"
             />
           </div>
-        </div>                
+        </div>
       </div>
 
-      {/* 選中的圓餅圖資訊顯示區 */}
-        {selectedCity && filteredCityGeneData[selectedCity] && (
-          <div style={{ marginTop: 16, padding: 12, border: "1px solid #ccc", borderRadius: 6 }}>
-           <h4>{selectedCity} Gene distribution</h4>
+      {/* ================= 中間：顯示選中城市圓餅圖資料 ================= */}
+      {selectedCity && filteredCityGeneData[selectedCity] && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 12,
+            border: "1px solid #ccc",
+            borderRadius: 6,
+          }}
+        >
+          <h4>{selectedCity} Gene distribution</h4>
           <ul>
             {filteredCityGeneData[selectedCity].data.map((g) => (
-            <li key={g.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 14, height: 14, borderRadius: "50%",
-              background: geneColors[g.name] || "#bbb"
-              }} />
-              {g.name}: {g.value}
-            </li>
-          ))}
-        </ul>
-        <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
-          Total quantity: {filteredCityGeneData[selectedCity].totalCount}
-        </div>
+              <li
+                key={g.name}
+                style={{ display: "flex", alignItems: "center", gap: 8 }}
+              >
+                <div
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    background: geneColors[g.name] || "#bbb",
+                  }}
+                />
+                {g.name}: {g.value}
+              </li>
+            ))}
+          </ul>
+          <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
+            Total quantity: {filteredCityGeneData[selectedCity].totalCount}
+          </div>
         </div>
       )}
 
-      {/* 右側：地圖容器 */}
+      {/* ================= 右側：地圖顯示與互動區 ================= */}
       <div style={{ flex: 1 }}>
         <div
           id="map-container"
@@ -749,7 +765,8 @@ return (
           }}
           onMouseMove={handleMouseMove}
         >
-          {/* 地圖圖片 */}
+
+          {/* 🖼️ 地圖圖片 */}
           {mapImage && (
             <img
               src={mapImage}
@@ -768,7 +785,7 @@ return (
             />
           )}
 
-          {/* 連線 */}
+          {/* ➖ 城市原始座標 → 目前座標的對應線條 */}
           <svg
             width={conW}
             height={conH}
@@ -802,7 +819,6 @@ return (
                   from &&
                   to &&
                   (from.cx !== to.cx || from.cy !== to.cy);
-               
 
                 return (
                   shouldDraw && (
@@ -824,7 +840,7 @@ return (
               })}
           </svg>
 
-          {/* 圓餅圖 */}
+          {/* 🥧 各城市圓餅圖 */}
           {mapLoaded &&
             Object.entries(filteredCityGeneData).map(([city, chartData]) => (
               <CityPieChart
@@ -837,12 +853,12 @@ return (
                 geneColors={geneColors}
                 position={chartData.containerCoordinates}
                 opacity={cityVisibility[city] ? 1 : 0.12}
-                onClick={() => setSelectedCity(city)}   // 👈 點擊後立即記錄
-                isSelected={selectedCity === city}      // 👈 判斷是否選中
+                onClick={() => setSelectedCity(city)} // 點擊選中城市
+                isSelected={selectedCity === city}    // 判斷是否選中
               />
             ))}
 
-          {/* 滑鼠座標 */}
+          {/* 🖱️ 即時滑鼠座標顯示 */}
           <div
             className="coord-label"
             style={{
@@ -858,15 +874,15 @@ return (
           </div>
         </div>
 
-        {/* 匯出按鈕 */}
+        {/* 📤 匯出地圖按鈕 */}
         <button onClick={handleExportPNG} style={{ marginTop: 10 }}>
           Export Map PNG + Haplotype List
         </button>
-      </div>      
+      </div>
     </div>
-
   </div>
 );
+
 
 
 };

@@ -1,6 +1,6 @@
 /* 外層容器，啟用水平滾動 */
 .gene-table-container {
-  width: 800px;
+  max-width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
 }

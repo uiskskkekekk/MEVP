@@ -295,319 +295,355 @@ const handleImageUpload = (e) => {
   }
 };
 
-  return (
+return (
   <div style={{ display: "flex", flexDirection: "row", gap: 16 }}>
-    {/* 左側：地圖清單 */}
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    minWidth: 300,
-    alignSelf: "flex-start",
-  }}
->
-  {/* 上傳與調整區域 */}
-  <label style={{ marginTop: 8 }}></label>
-  <div>
-    <label>Upload Map PNG: </label>
-    <input type="file" accept="image/png" onChange={handleImageUpload} />
-  </div>
-
-{/* 地圖圖片切換按鈕區域 */}
-  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 , width: 300}}>
-    {mapImages.map((map) => (
-      <button
-        key={map.id}
-        onClick={() => handleSwitchMap(map)}
-        style={{
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "1px solid #ccc",
-          background: activeMapId === map.id ? "#4cafef" : "#f0f0f0",
-          cursor: "pointer",
-        }}
-      >
-        {map.name}
-      </button>
-    ))}
-
-    <button
-      onClick={() => {
-        setMapImage(null);
-        setActiveMapId("Customize");
-      }}
-      style={{
-        padding: "6px 10px",
-        borderRadius: 6,
-        border: "1px solid #ccc",
-        background: activeMapId === "Customize" ? "#4cafef" : "#f0f0f0",
-        cursor: "pointer",
-        textAlign: "center",
-      }}
-    >
-      Customize Map
-    </button>
-  </div>
-
-
-
-
-
-
-  <div style={{ marginTop: 8 }}>
-    <label>Image Width:</label>
-    <input
-      type="number"
-      value={imgW ?? ""}
-      onChange={(e) => setImgW(Number(e.target.value))}
-      className="small-input"
-    />
-</div>
-<div style={{ marginTop: 8 }}>
-    <label> Image Height:</label>
-    <input
-      type="number"
-      value={imgH ?? ""}
-      onChange={(e) => setImgH(Number(e.target.value))}
-      className="small-input"
-    />
-    <button
-      style={{ marginLeft: 8 }}
-      onClick={() => {
-        setImgW(Math.round(imgW * 1.25));
-        setImgH(Math.round(imgH * 1.25));
-      }}
-    >
-      🔍+
-    </button>
-    <button
-      style={{ marginLeft: 4 }}
-      onClick={() => {
-        setImgW(Math.round(imgW * 0.8));
-        setImgH(Math.round(imgH * 0.8));
-      }}
-    >
-      🔍-
-    </button>
-  </div>
-
-  {/* Longitude Range with Direction */}
-        <div style={{ marginTop: 8 }}>
-          <label>Longitude Range:</label>
-          <div style={{ display: "flex", gap: 6 }}>
-            <select
-              value={lonDirMin}
-              onChange={(e) => {
-                setLonDirMin(e.target.value);
-                setLonRange([Math.abs(lonRange[0]) * (e.target.value === "E" ? 1 : -1), lonRange[1]]);
-              }}
-            >
-              <option value="E">E</option>
-              <option value="W">W</option>
-            </select>
-            <input
-              type="number"
-              value={Math.abs(lonRange[0])}
-              onChange={(e) =>
-                setLonRange([+e.target.value * (lonDirMin === "E" ? 1 : -1), lonRange[1]])
-              }
-              className="small-input"
-            />
-            -
-            <select
-              value={lonDirMax}
-              onChange={(e) => {
-                setLonDirMax(e.target.value);
-                setLonRange([lonRange[0], Math.abs(lonRange[1]) * (e.target.value === "E" ? 1 : -1)]);
-              }}
-            >
-              <option value="E">E</option>
-              <option value="W">W</option>
-            </select>
-            <input
-              type="number"
-              value={Math.abs(lonRange[1])}
-              onChange={(e) =>
-                setLonRange([lonRange[0], +e.target.value * (lonDirMax === "E" ? 1 : -1)])
-              }
-              className="small-input"
-            />
-          </div>
-        </div>
-
-        {/* Latitude Range with Direction */}
-        <div style={{ marginTop: 8 }}>
-          <label>Latitude Range:</label>
-          <div style={{ display: "flex", gap: 6 }}>
-            <select
-              value={latDirMin}
-              onChange={(e) => {
-                setLatDirMin(e.target.value);
-                setLatRange([Math.abs(latRange[0]) * (e.target.value === "N" ? 1 : -1), latRange[1]]);
-              }}
-            >
-              <option value="N">N</option>
-              <option value="S">S</option>
-            </select>
-            <input
-              type="number"
-              value={Math.abs(latRange[0])}
-              onChange={(e) =>
-                setLatRange([+e.target.value * (latDirMin === "N" ? 1 : -1), latRange[1]])
-              }
-              className="small-input"
-            />
-            -
-            <select
-              value={latDirMax}
-              onChange={(e) => {
-                setLatDirMax(e.target.value);
-                setLatRange([latRange[0], Math.abs(latRange[1]) * (e.target.value === "N" ? 1 : -1)]);
-              }}
-            >
-              <option value="N">N</option>
-              <option value="S">S</option>
-            </select>
-            <input
-              type="number"
-              value={Math.abs(latRange[1])}
-              onChange={(e) =>
-                setLatRange([latRange[0], +e.target.value * (latDirMax === "N" ? 1 : -1)])
-              }
-              className="small-input"
-            />
-          </div>
-        </div>
-
-  
-
-</div>
-
-
-    {/* 右側：地圖容器 + 基因清單 */}
-    <div style={{ display: "flex", flexDirection: "row", flex: 1, gap: 16 }}>
-      {/* 地圖容器 */}
-      <div
-        id="map-container"
-  className="map-container"
-  style={{
-    position: "relative",
-    width: conW,
-    height: conH,
-    userSelect: "none",
-    flexShrink: 0,
-  }}
-  onMouseMove={handleMouseMove}
->
-  {/* 還沒載入時什麼都不顯示 */}
-  {mapImage && !mapLoaded && (
+    {/* ======================== 左側：地圖清單與設定 ======================== */}
     <div
       style={{
-        width: "100%",
-        height: "100%",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "16px",
-        color: "#666",
+        flexDirection: "column",
+        gap: 6,
+        minWidth: 300,
+        alignSelf: "flex-start",
       }}
     >
-      Loading map...
-    </div>
-  )}
+      {/* --- 上傳地圖 PNG 區域 --- */}
+      <label style={{ marginTop: 8 }}></label>
+      <div>
+        <label>Upload Map PNG: </label>
+        <input type="file" accept="image/png" onChange={handleImageUpload} />
+      </div>
 
-  {/* 地圖載入完成才顯示 */}
-  {mapImage && (
-    <img
-      src={mapImage}
-      alt="Map"
-      width={imgW}
-      height={imgH}
-      style={{
-        backgroundColor: "rgba(255, 255, 255, 0.85)",
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex: 1,
-        display: mapLoaded ? "block" : "none", // 👈 沒載入完成不顯示
-      }}
-      onLoad={() => setMapLoaded(true)} // 👈 載入完成才改為 true
-    />
-  )}
-
-  {/* 連線：地圖載入後才顯示 */}
-  {mapLoaded && (
-    <svg
-      width={conW}
-      height={conH}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    >
-      <defs>
-        <marker
-          id="arrow"
-          markerWidth="6"
-          markerHeight="6"
-          refX="5"
-          refY="3"
-          orient="auto"
-        >
-          <path d="M0,0 L0,6 L6,3 z" fill="gray" />
-        </marker>
-      </defs>
-      {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
-        const from = chartData.originalContainerCoordinates;
-        const to = chartData.containerCoordinates;
-        const shouldDraw =
-          chartData.line &&
-          from &&
-          to &&
-          (from.cx !== to.cx || from.cy !== to.cy);
-        return (
-          shouldDraw && (
-            <line
-              key={`line-${city}`}
-              x1={from.cx}
-              y1={from.cy}
-              x2={to.cx}
-              y2={to.cy}
-              stroke="gray"
-              strokeWidth={1.5}
-              strokeDasharray="4,4"
-              markerEnd="url(#arrow)"
-              opacity={0.7}
-              style={{ zIndex: 20 }}
-            />
-          )
-        );
-      })}
-    </svg>
-  )}
-
-  {/* 圓餅圖：地圖載入後才顯示 */}
-  {mapLoaded &&
-    Object.entries(filteredCityGeneData).map(([city, chartData]) => (
-      <CityPieChart
-        key={city}
-        city={city}
-        chartData={{
-          data: chartData.data,
-          totalCount: chartData.totalCount,
+      {/* --- 地圖圖片切換按鈕區域 --- */}
+      <div
+        style={{
+          marginTop: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          width: 300,
         }}
-        geneColors={geneColors}
-        position={chartData.containerCoordinates}
-        opacity={1}
-      />
-    ))}
+      >
+        {mapImages.map((map) => (
+          <button
+            key={map.id}
+            onClick={() => handleSwitchMap(map)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid #ccc",
+              background: activeMapId === map.id ? "#4cafef" : "#f0f0f0",
+              cursor: "pointer",
+            }}
+          >
+            {map.name}
+          </button>
+        ))}
 
-        {/* 滑鼠座標 */}
+        {/* 自訂地圖按鈕 */}
+        <button
+          onClick={() => {
+            setMapImage(null);
+            setActiveMapId("Customize");
+          }}
+          style={{
+            padding: "6px 10px",
+            borderRadius: 6,
+            border: "1px solid #ccc",
+            background: activeMapId === "Customize" ? "#4cafef" : "#f0f0f0",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          Customize Map
+        </button>
+      </div>
+
+      {/* --- 圖片大小調整 --- */}
+      <div style={{ marginTop: 8 }}>
+        <label>Image Width:</label>
+        <input
+          type="number"
+          value={imgW ?? ""}
+          onChange={(e) => setImgW(Number(e.target.value))}
+          className="small-input"
+        />
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <label>Image Height:</label>
+        <input
+          type="number"
+          value={imgH ?? ""}
+          onChange={(e) => setImgH(Number(e.target.value))}
+          className="small-input"
+        />
+      </div>
+
+      {/* --- 快速縮放按鈕 --- */}
+      <div style={{ display: "flex", gap: "8px", marginLeft: 8 }}>
+        <button
+          onClick={() => {
+            setImgW(Math.round(imgW * 1.25));
+            setImgH(Math.round(imgH * 1.25));
+          }}
+        >
+          🔍+
+        </button>
+        <button
+          onClick={() => {
+            setImgW(Math.round(imgW * 0.8));
+            setImgH(Math.round(imgH * 0.8));
+          }}
+        >
+          🔍-
+        </button>
+      </div>
+
+      {/* --- 經度範圍設定（含方向） --- */}
+      <div style={{ marginTop: 8 }}>
+        <label>Longitude Range:</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          {/* 最小值 */}
+          <select
+            value={lonDirMin}
+            onChange={(e) => {
+              setLonDirMin(e.target.value);
+              setLonRange([
+                Math.abs(lonRange[0]) * (e.target.value === "E" ? 1 : -1),
+                lonRange[1],
+              ]);
+            }}
+          >
+            <option value="E">E</option>
+            <option value="W">W</option>
+          </select>
+          <input
+            type="number"
+            value={Math.abs(lonRange[0])}
+            onChange={(e) =>
+              setLonRange([
+                +e.target.value * (lonDirMin === "E" ? 1 : -1),
+                lonRange[1],
+              ])
+            }
+            className="small-input"
+          />
+
+          {/* 最大值 */}
+          -
+          <select
+            value={lonDirMax}
+            onChange={(e) => {
+              setLonDirMax(e.target.value);
+              setLonRange([
+                lonRange[0],
+                Math.abs(lonRange[1]) * (e.target.value === "E" ? 1 : -1),
+              ]);
+            }}
+          >
+            <option value="E">E</option>
+            <option value="W">W</option>
+          </select>
+          <input
+            type="number"
+            value={Math.abs(lonRange[1])}
+            onChange={(e) =>
+              setLonRange([
+                lonRange[0],
+                +e.target.value * (lonDirMax === "E" ? 1 : -1),
+              ])
+            }
+            className="small-input"
+          />
+        </div>
+      </div>
+
+      {/* --- 緯度範圍設定（含方向） --- */}
+      <div style={{ marginTop: 8 }}>
+        <label>Latitude Range:</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          {/* 最小值 */}
+          <select
+            value={latDirMin}
+            onChange={(e) => {
+              setLatDirMin(e.target.value);
+              setLatRange([
+                Math.abs(latRange[0]) * (e.target.value === "N" ? 1 : -1),
+                latRange[1],
+              ]);
+            }}
+          >
+            <option value="N">N</option>
+            <option value="S">S</option>
+          </select>
+          <input
+            type="number"
+            value={Math.abs(latRange[0])}
+            onChange={(e) =>
+              setLatRange([
+                +e.target.value * (latDirMin === "N" ? 1 : -1),
+                latRange[1],
+              ])
+            }
+            className="small-input"
+          />
+
+          {/* 最大值 */}
+          -
+          <select
+            value={latDirMax}
+            onChange={(e) => {
+              setLatDirMax(e.target.value);
+              setLatRange([
+                latRange[0],
+                Math.abs(latRange[1]) * (e.target.value === "N" ? 1 : -1),
+              ]);
+            }}
+          >
+            <option value="N">N</option>
+            <option value="S">S</option>
+          </select>
+          <input
+            type="number"
+            value={Math.abs(latRange[1])}
+            onChange={(e) =>
+              setLatRange([
+                latRange[0],
+                +e.target.value * (latDirMax === "N" ? 1 : -1),
+              ])
+            }
+            className="small-input"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* ======================== 右側：地圖容器 + 基因清單 ======================== */}
+    <div style={{ display: "flex", flexDirection: "row", flex: 1, gap: 16 }}>
+      {/* --- 地圖容器 --- */}
+      <div
+        id="map-container"
+        className="map-container"
+        style={{
+          position: "relative",
+          width: conW,
+          height: conH,
+          userSelect: "none",
+          flexShrink: 0,
+        }}
+        onMouseMove={handleMouseMove}
+      >
+        {/* 還沒載入時顯示 Loading */}
+        {mapImage && !mapLoaded && (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "16px",
+              color: "#666",
+            }}
+          >
+            Loading map...
+          </div>
+        )}
+
+        {/* 地圖載入完成才顯示 */}
+        {mapImage && (
+          <img
+            src={mapImage}
+            alt="Map"
+            width={imgW}
+            height={imgH}
+            style={{
+              backgroundColor: "rgba(255, 255, 255, 0.85)",
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 1,
+              display: mapLoaded ? "block" : "none",
+            }}
+            onLoad={() => setMapLoaded(true)}
+          />
+        )}
+
+        {/* 連線（虛線箭頭） */}
+        {mapLoaded && (
+          <svg
+            width={conW}
+            height={conH}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          >
+            <defs>
+              <marker
+                id="arrow"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L0,6 L6,3 z" fill="gray" />
+              </marker>
+            </defs>
+
+            {Object.entries(filteredCityGeneData).map(([city, chartData]) => {
+              const from = chartData.originalContainerCoordinates;
+              const to = chartData.containerCoordinates;
+              const shouldDraw =
+                chartData.line &&
+                from &&
+                to &&
+                (from.cx !== to.cx || from.cy !== to.cy);
+
+              return (
+                shouldDraw && (
+                  <line
+                    key={`line-${city}`}
+                    x1={from.cx}
+                    y1={from.cy}
+                    x2={to.cx}
+                    y2={to.cy}
+                    stroke="gray"
+                    strokeWidth={1.5}
+                    strokeDasharray="4,4"
+                    markerEnd="url(#arrow)"
+                    opacity={0.7}
+                    style={{ zIndex: 20 }}
+                  />
+                )
+              );
+            })}
+          </svg>
+        )}
+
+        {/* 圓餅圖 */}
+        {mapLoaded &&
+          Object.entries(filteredCityGeneData).map(([city, chartData]) => (
+            <CityPieChart
+              key={city}
+              city={city}
+              chartData={{
+                data: chartData.data,
+                totalCount: chartData.totalCount,
+              }}
+              geneColors={geneColors}
+              position={chartData.containerCoordinates}
+              opacity={1}
+            />
+          ))}
+
+        {/* 滑鼠座標顯示 */}
         <div
           className="coord-label"
           style={{
@@ -619,12 +655,12 @@ const handleImageUpload = (e) => {
           }}
         >
           longitude: {decimalToDegreeMinuteWithDir(parseFloat(latLon.lon), "lon")}
-            <br />
-            latitude: {decimalToDegreeMinuteWithDir(parseFloat(latLon.lat), "lat")}
+          <br />
+          latitude: {decimalToDegreeMinuteWithDir(parseFloat(latLon.lat), "lat")}
         </div>
       </div>
 
-      {/* 基因清單 */}
+      {/* --- 基因清單 --- */}
       <div style={{ width: 300 }}>
         <h4>Select display genes：</h4>
         <input
@@ -634,16 +670,21 @@ const handleImageUpload = (e) => {
           placeholder="Search"
           className="search-input"
         />
+
         <div className="flex flex-gap-5" style={{ marginBottom: "8px" }}>
           <button onClick={handleSelectAll}>All</button>
           <button onClick={handleClearAll}>Clear</button>
         </div>
 
-        <div style={{ maxHeight: "460px", overflowY: "auto", paddingRight: "5px" }}>
+        {/* 基因清單 */}
+        <div
+          style={{ maxHeight: "460px", overflowY: "auto", paddingRight: "5px" }}
+        >
           {currentGenes.map((name) => {
             const isEnabled =
               name === selectedGene ||
-              (Array.isArray(activeSimilarityGroup) && activeSimilarityGroup.includes(name));
+              (Array.isArray(activeSimilarityGroup) &&
+                activeSimilarityGroup.includes(name));
             return (
               <label
                 key={name}
@@ -666,13 +707,22 @@ const handleImageUpload = (e) => {
           })}
         </div>
 
+        {/* 分頁控制 */}
         <div className="pagination-controls" style={{ marginTop: "8px" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+            disabled={currentPage === 0}
+          >
             Previous page
           </button>
-          <span> {currentPage + 1} / {totalPages} </span>
+          <span>
+            {" "}
+            {currentPage + 1} / {totalPages}{" "}
+          </span>
           <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+            onClick={() =>
+              setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+            }
             disabled={currentPage >= totalPages - 1}
           >
             Next page
@@ -680,10 +730,9 @@ const handleImageUpload = (e) => {
         </div>
       </div>
     </div>
-
-
   </div>
 );
+
 
 };
 

@@ -141,6 +141,8 @@ app.post("/getGeneCountsByNames", (req, res) => {
   res.json({ genes: filteredGenes });
 });
 
+
+// Hamming distance 計算
 function hammingDistance(seq1, seq2) {
   if (seq1.length !== seq2.length) return Infinity;
   let dist = 0;
@@ -150,62 +152,49 @@ function hammingDistance(seq1, seq2) {
   return dist;
 }
 
-/**
- * 建立 Haplotype 圖資料（nodes 與 edges）
- * - 用 Kruskal 演算法挑出 MST (黑實線)
- * - 再補一些距離 1~300 的邊 (藍虛線)
- * - 最後把漂浮孤立的圓圈接回代表點 (灰虛線)
- */
 app.get("/HaplotypeNetwork", (req, res) => {
-  const sequenceMap = new Map();
+  // --- Step 1: 建立 hapId → 合併群組 ---
+  const hapMap = new Map();
 
-  // 建立 sequence → gene 群組
   for (const { name, city, count } of geneCounts) {
     const sequence = geneSequences[name];
     if (!sequence) continue;
 
-    if (!sequenceMap.has(sequence)) {
-      sequenceMap.set(sequence, []);
+    // 嘗試解析 hap 編號，例如 BbR_1077_3 → hapId = Hap_1077
+    const match = name.match(/_(\d+)_\d+$/);
+    const hapId = match ? `Hap_${match[1]}` : name; // ⚡ 沒 match 就直接用 name
+
+    if (!hapMap.has(hapId)) {
+      hapMap.set(hapId, {
+        id: hapId,
+        sequence,
+        totalCount: 0,
+        cities: {},
+        members: [],
+      });
     }
-    sequenceMap.get(sequence).push({ name, city, count });
+
+    const hap = hapMap.get(hapId);
+    hap.totalCount += count;
+    hap.cities[city] = (hap.cities[city] || 0) + count;
+    hap.members.push({ name, city, count });
   }
 
+  // --- Step 2: 建立 nodes ---
   const nodes = [];
-  const representatives = [];
-  let groupIdCounter = 0;
-
-  // 建立 nodes 與代表點
-  for (const [sequence, geneGroup] of sequenceMap.entries()) {
-    const nodeMap = new Map();
-
-    for (const { name, city, count } of geneGroup) {
-      if (!nodeMap.has(name)) {
-        nodeMap.set(name, {
-          id: name,
-          sequence,
-          count: 0,
-          cities: {},
-          groupId: groupIdCounter,
-        });
-      }
-      const node = nodeMap.get(name);
-      node.count += count;
-      node.cities[city] = (node.cities[city] || 0) + count;
-    }
-
-    const groupNodes = Array.from(nodeMap.values());
-    const representative = groupNodes.reduce((a, b) =>
-      a.count >= b.count ? a : b
-    );
-    representative.isRepresentative = true;
-
-    representatives.push(representative);
-    nodes.push(...groupNodes);
-
-    groupIdCounter++;
+  for (const hap of hapMap.values()) {
+    nodes.push({
+      id: hap.id,
+      sequence: hap.sequence,
+      count: hap.totalCount,
+      cities: hap.cities,
+      isRepresentative: true,
+    });
   }
 
-  // ==== 建立所有可能的邊（代表點之間的 Hamming distance） ====
+  const representatives = nodes;
+
+  // --- Step 3: 建立所有代表點間的距離邊 ---
   const allEdges = [];
   for (let i = 0; i < representatives.length; i++) {
     for (let j = i + 1; j < representatives.length; j++) {
@@ -221,7 +210,7 @@ app.get("/HaplotypeNetwork", (req, res) => {
     }
   }
 
-  // ==== Kruskal's Algorithm：最小生成樹 ====
+  // --- Step 4: Kruskal's Algorithm：最小生成樹 ---
   const parent = {};
   const find = (x) => {
     if (parent[x] === undefined) parent[x] = x;
@@ -251,7 +240,7 @@ app.get("/HaplotypeNetwork", (req, res) => {
     }
   }
 
-  // ==== 額外加上 Hamming distance 1~300 的邊 ====
+  // --- Step 5: 額外加上 Hamming distance 1~2 的邊 ---
   const extraEdges = [];
   const connectionCount = {};
   const cityPairs = new Set();
@@ -270,10 +259,10 @@ app.get("/HaplotypeNetwork", (req, res) => {
         );
 
         if (!alreadyInMST) {
-          if ((connectionCount[nodeA.id] || 0) >= 300) continue;
-          if ((connectionCount[nodeB.id] || 0) >= 300) continue;
+          if ((connectionCount[nodeA.id] || 0) >= 2) continue;
+          if ((connectionCount[nodeB.id] || 0) >= 2) continue;
 
-          const cityPairKey = [nodeA.city, nodeB.city].sort().join("-");
+          const cityPairKey = [nodeA.id, nodeB.id].sort().join("-");
           if (cityPairs.has(cityPairKey)) continue;
 
           extraEdges.push({
@@ -295,43 +284,28 @@ app.get("/HaplotypeNetwork", (req, res) => {
     }
   }
 
-  // ==== 漂浮孤立圓圈接到代表點 ====
-  const representativeMap = {};
-  for (const node of nodes) {
-    if (node.isRepresentative) {
-      representativeMap[node.groupId] = node;
-    }
-  }
-
+  // --- Step 6: 處理孤立節點 ---
   const connectedEdges = [...mstEdges, ...extraEdges];
   const isolatedEdges = [];
   for (const node of nodes) {
-    if (!node.isRepresentative) {
-      const alreadyConnected = connectedEdges.some(
-        (e) => e.source === node.id || e.target === node.id
-      );
-      if (!alreadyConnected) {
-        const rep = representativeMap[node.groupId];
-        if (rep) {
-          isolatedEdges.push({
-            source: node.id,
-            target: rep.id,
-            distance: 0,
-            isMST: false,
-            style: "dashed",
-            color: "#999",
-          });
-        }
-      }
+    const alreadyConnected = connectedEdges.some(
+      (e) => e.source === node.id || e.target === node.id
+    );
+    if (!alreadyConnected) {
+      isolatedEdges.push({
+        source: node.id,
+        target: node.id,
+        distance: 0,
+        isMST: false,
+        style: "dashed",
+        color: "#999",
+      });
     }
   }
 
-  // ==== 回傳結果 ====
+  // --- Step 7: 回傳結果 ---
   res.json({ nodes, edges: [...mstEdges, ...extraEdges, ...isolatedEdges] });
 });
-
-
-
 
 
 
@@ -501,13 +475,6 @@ for (let i = 0; i < simplifiedNodes.length; i++) {
   // 回傳 MST + 額外邊
   res.json({ nodes: simplifiedNodes, edges: [...mstEdges, ...extraEdges] });
 });
-
-
-
-
-
-
-
 
 
 const multer = require("multer");
