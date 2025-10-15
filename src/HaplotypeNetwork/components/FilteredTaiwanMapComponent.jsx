@@ -29,7 +29,7 @@ const CityPieChart = memo(
         <PieChart width={outerRadius * 2} height={outerRadius * 2}>
           <Pie data={data} dataKey="value" cx="50%" cy="50%" outerRadius={outerRadius}>
             {data.map((entry, index) => (
-              <Cell key={`cell-${city}-${index}`} fill={geneColors[entry.name] || "#bbb"} />
+              <Cell key={`cell-${city}-${index}`} fill={geneColors[entry.name] || "#ffffffff"} />
             ))}
           </Pie>
           <Tooltip />

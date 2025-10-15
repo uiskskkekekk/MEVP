@@ -1,22 +1,27 @@
+/* ============================ */
 /* 外層容器，啟用水平滾動 */
 .gene-table-container {
-  max-width: 100%;
+ 
+  width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
 }
 
 .gene-table-wrapper {
-  min-width: 120px;
+ 
+  width: 100%;
   overflow-x: auto;
 }
 
+/* ============================ */
 /* 表格展開寬度，必要才能顯示捲軸 */
 .gene-table {
   border-collapse: collapse;
-  
-  min-width: max-content;
+  width: max-content;
+  table-layout: auto;
 }
 
+/* ============================ */
 /* 基本格線 */
 .gene-table th,
 .gene-table td {
@@ -32,7 +37,6 @@
 /* 🎯 詳細資料表固定第一列和第一欄 */
 /* ========================== */
 .view-detail .gene-table thead th {
-    
   position: sticky;
   top: 0;
   z-index: 2;
@@ -47,6 +51,11 @@
   z-index: 3;
   text-align: left;
   min-width: 180px;
+}
+
+.view-detail .gene-table-wrapper {
+  min-width: 800;
+  overflow: auto;  /* 同時支援水平與垂直滾動 */
 }
 
 /* ========================== */
@@ -65,23 +74,25 @@
 .view-count .gene-table td:nth-child(2) {
   position: sticky;
   left: 0;
-  background: #ffffff;
+  background: #fffefe;
   z-index: 3;
   min-width: 40px;
   text-align: left;
 }
 
+/* ============================ */
 /* 小顏色方塊 */
 .color-box {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 25px;
+  height: 25px;
   margin-right: 6px;
   vertical-align: middle;
   border: 1px solid #b9b8b8;
 }
 
-
+/* ============================ */
+/* 表格內的輸入框樣式 */
 .gene-table td input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -94,23 +105,34 @@
   text-align: center;
 }
 
-.gene-table th, .gene-table td {
+.gene-table th,
+.gene-table td {
   padding: 8px 12px;
 }
 
-
+/* ============================ */
+/* 第一欄寬度與內邊距 */
 .gene-table th:first-child,
 .gene-table td:first-child {
   width: 10px;  /* 設定勾選框那一列的寬度 */
   padding: 5px; /* 可以調整內邊距來改變欄位高度 */
 }
 
+/* ============================ */
+/* 總數量表：固定列欄 + 可捲動 */
+/* 只針對 CVS table 套用 */
+.view-total .gene-table {
+  border-collapse: collapse;
+  width: max-content;   /* 依內容展開 */
+  min-width: fit-content;      /* 至少跟容器一樣寬 */
+  table-layout: auto;
+}
 
-
-/* ========== 總數量表：固定列欄 + 可捲動 ========== */
 .view-total .gene-table-wrapper {
-  max-height: 500px;
-  overflow: auto;  /* 同時支援水平與垂直滾動 */
+  max-height: 800px; /* 設定最大高度以觸發滾動 */
+  overflow-y: auto;  /* 垂直滾動 */
+  display: block;    /* 使tbody能夠滾動 */
+  max-width: 100%;   /* 限制表格最大寬度 */
 }
 
 /* 固定表頭（第一列） */
@@ -118,7 +140,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #bababa;
+  background: #e5e4e4;
 }
 
 /* 固定第一欄 */
@@ -126,23 +148,18 @@
 .view-total .gene-table th:first-child {
   position: sticky;
   left: 0;
-  
-  background: #b8b7b7;
+  background: #e2e2e2;
   min-width: 100px;
   text-align: left;
 }
 
-.view-total .gene-table-wrapper {
-  max-height: 500px;
-  overflow: auto;
-}
-
-
-.color-box {
+/* ============================ */
+/* 改良顏色方塊樣式 */
+.view-total .color-box {
   width: 20px;
   height: 20px;
   border-radius: 2px;
   display: inline-block;
   margin-right: 6px;
-  border: 1px solid #a1a0a0;
+  border: 1px solid #e30505;
 }

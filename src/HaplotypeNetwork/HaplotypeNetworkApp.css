@@ -12,7 +12,7 @@
 /* ===== 按鈕群組 ===== */
 .button-group {
   display: flex;
-  justify-content: center;
+  
   gap: 12px;
   padding: 12px;
   background: #ffffff;
@@ -37,6 +37,7 @@
 
 /* ===== 區塊 Section 區隔 ===== */
 .section {
+  max-width: 100%;
   display: flex;
   gap: 20px;
   align-items: flex-start;
@@ -68,21 +69,17 @@
 .tables-row {
   display: flex;
   gap: 20px;
-  width: 100%;
+  width: 90%;
   align-items: flex-start;
 }
 
 /* 地圖外框 */
 .map-box {
-  min-width: 40%;
-  max-width: 45%;
-  flex: 1; /* 平均分配空間，或改 flex:2 / flex:1 調整比例 */
-  background: #ffffff;
-  border: 2px solid #ccc; /* 外框線 */
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  min-width: 55%;
+  
+  flex: 2; /* 平均分配空間，或改 flex:2 / flex:1 調整比例 */
   overflow: auto; /* 內容超出時可以滾動 */
+
 }
 
 /* 左側的 HaplotypeList  */
@@ -102,7 +99,8 @@
 /* 右側的 GeneTable 區塊 */
 .gene-section {
   flex: 1; /* 右側佔比 1 */
-  max-width: 35%;
+  
+  min-width: 40%;
   background: #ffffff;
   border: 1px solid #ddd;
   border-radius: 12px;
@@ -114,7 +112,7 @@
 /* 右側的 GeneSelector 區塊 */
 .geneselector-section {
   flex: 1; /* 右側佔比 1 */
-  min-width: 50%;
+  min-width: 40%;
   background: #ffffff;
   border: 1px solid #ddd;
   border-radius: 12px;
@@ -145,7 +143,7 @@
 }
 
 .pagination button:disabled {
-  background-color: #cccccc;
+  background-color: #f8f8f8;
   cursor: not-allowed;
 }
 

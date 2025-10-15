@@ -3,21 +3,21 @@ export function generateCityCoordinates(imgW, imgH, margin = 200, step = 75) {
 
   // 左邊
   for (let x = -margin; x < -25 ; x += step) {
-    for (let y = 25 ; y <= imgH ; y += step) {
+    for (let y = 50 ; y <= imgH  ; y += step) {
       coords.push({ cx: x, cy: y });
     }
   }
 
   // 右邊
-  for (let x = imgW + 25 ; x <= imgW + margin; x += step) {
-    for (let y = 25; y <= imgH ; y += step) {
+  for (let x = imgW + 50 ; x <= imgW + margin - 75; x += step) {
+    for (let y = 50; y <= imgH  ; y += step) {
       coords.push({ cx: x, cy: y });
     }
   }
 
   // 上方
   for (let x = -200 ; x <= imgW + margin; x += step) {
-    for (let y = -25 ; y > -margin ; y += -step) {
+    for (let y = -25 ; y > -margin + 50 ; y += -step) {
       coords.push({ cx: x, cy: y });
     }
   }

@@ -1,11 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const HaplotypeReducer = () => {
   const [hapFasta, setHapFasta] = useState(null);
   const [excelFile, setExcelFile] = useState(null);
   const [reduceSize, setReduceSize] = useState(30);
-  const [outputFilename, setOutputFilename] = useState("output.reduce.fa");
+  const [outputFilename, setOutputFilename] = useState(`output.reduce_${reduceSize}.fa`);
   const [loading, setLoading] = useState(false);
+
+  // 每次 reduceSize 改变时，自动更新 outputFilename
+  useEffect(() => {
+    setOutputFilename(`output.reduce_${reduceSize}.fa`);
+  }, [reduceSize]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +58,7 @@ const HaplotypeReducer = () => {
   };
 
   return (
-    <div style={{ marginTop: "150px", padding: "1rem", border: "1px solid #ccc" }}>
+    <div style={{  padding: "1rem", border: "1px solid #ccc" }}>
       <h3> Haplotype Reduce tool</h3>
       <form onSubmit={handleSubmit}>
         {/* FASTA file */}

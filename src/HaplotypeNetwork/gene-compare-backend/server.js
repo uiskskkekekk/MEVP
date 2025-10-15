@@ -41,6 +41,44 @@ app.get("/sequences", (req, res) => {
   res.json({ geneNames, sequences: geneSequences });
 });
 
+// 合併基因序列
+app.post("/mergesequences", (req, res) => {
+  const { sequences } = req.body;
+
+  if (!sequences) {
+    return res.status(400).json({ error: "Invalid request, sequences are required" });
+  }
+
+  // 儲存合併後的基因序列
+  let mergedSequences = {};
+
+  // 遍歷基因序列，合併基因名稱相同的序列
+  for (const [name, sequence] of Object.entries(sequences)) {
+    const baseName = name.replace(/_\d+$/, ''); // 去除數字後綴，保留基因名
+    if (!mergedSequences[baseName]) {
+      mergedSequences[baseName] = ''; // 如果該基因名稱不存在，創建一個新序列
+    }
+    mergedSequences[baseName] += sequence; // 合併序列
+  }
+
+  // 更新暫存的基因序列
+  geneSequences = mergedSequences;
+
+  // 提取合併後的基因名稱
+  const mergedGeneNames = Object.keys(mergedSequences);
+
+  // 格式化回傳：返回合併後的序列與名稱
+  const result = [];
+  for (const baseName of mergedGeneNames) {
+    result.push({
+      name: baseName,
+      sequence: mergedSequences[baseName]
+    });
+  }
+
+  res.json({ result });
+});
+
 
 
 
@@ -77,6 +115,34 @@ app.post("/compare", (req, res) => {
     }
   });
 });
+
+// 基因序列比對
+app.post("/sequencescompare", (req, res) => {
+  const { targetName, sequences } = req.body;
+
+  if (!targetName || !sequences || !sequences[targetName]) {
+    return res.status(400).json({ error: "Invalid request" });
+  }
+
+  // 提取 targetName 的合併基因序列
+  const baseName = targetName.replace(/_\d+$/, ''); // 去除數字後綴，保留基因名
+  const targetSequence = sequences[baseName];
+
+  if (!targetSequence) {
+    return res.status(400).json({ error: `Gene sequence for ${baseName} not found` });
+  }
+
+  // 可以在這裡進行基因序列的比對處理
+  // 例如，可以使用某些算法（如 Levenshtein distance）來進行比對
+
+  // 假設我們使用簡單的字符串比對
+  const comparisonResult = sequences[targetName].includes(targetSequence)
+    ? "Match found"
+    : "No match found";
+
+  res.json({ comparisonResult });
+});
+
 
 /**
  * 儲存基因 counts
@@ -128,18 +194,54 @@ app.get("/getGeneCounts", (req, res) => {
   res.json({ genes: geneCounts });
 });
 
-/**
- * 根據基因名稱陣列，取得對應的 counts
- */
-app.post("/getGeneCountsByNames", (req, res) => {
-  const { names } = req.body;
-  if (!Array.isArray(names)) {
-    return res.status(400).json({ error: "Invalid gene names format" });
+
+
+app.get("/getFormattedGeneCounts", (req, res) => {
+  const hapMap = new Map();
+
+  let totalGeneCount = 0; // 記錄所有基因的總數量
+
+  // 遍歷基因 counts
+  for (const { name, city, count } of geneCounts) {
+    totalGeneCount += count; // 計算總基因數量
+
+    const match = name.match(/_(\d+)_\d+$/);
+    const hapId = match ? `Hap_${match[1]}` : name; // 如果沒有匹配，直接使用 name
+
+    if (!hapMap.has(hapId)) {
+      hapMap.set(hapId, { id: hapId, cities: {} });
+    }
+
+    const hap = hapMap.get(hapId);
+    hap.cities[city] = (hap.cities[city] || 0) + count;
   }
 
-  const filteredGenes = geneCounts.filter((g) => names.includes(g.name));
-  res.json({ genes: filteredGenes });
+  // 計算格式化後的基因資料
+  const formattedGeneCounts = Array.from(hapMap.values()).map(hap => {
+    const hapTotalCount = Object.values(hap.cities).reduce((sum, count) => sum + count, 0);
+    const percentage = ((hapTotalCount / totalGeneCount) * 100).toFixed(2); // 計算百分比，保留兩位小數
+    const idWithPercentage = `${hap.id}(${percentage}%)`; // 在 id 中顯示百分比
+
+    return {
+      id: idWithPercentage,
+      cities: hap.cities,
+      percentage: parseFloat(percentage), // 添加 percentage 以便排序
+    };
+  });
+
+  // 按百分比從大到小排序
+  const sortedGeneCounts = formattedGeneCounts.sort((a, b) => b.percentage - a.percentage);
+
+  // 回傳格式化後的基因資料
+  res.json({
+    formattedGenes: sortedGeneCounts,
+  });
 });
+
+
+
+
+
 
 
 // Hamming distance 計算
@@ -543,11 +645,6 @@ app.post("/reduceHaplotypes", upload.fields([
     });
   });
 });
-
-
-
-
-
 
 
 /**

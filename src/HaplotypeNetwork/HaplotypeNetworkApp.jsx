@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import TaiwanMapComponent from "./components/TaiwanMapComponent";
-import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMapComponent";
+import TaiwanMapComponent from "./components/TaiwanMap/TaiwanMapComponent";
+import FilteredTaiwanMapComponent from "./components/FilteredTaiwanMap/FilteredTaiwanMapComponent";
 import HaplotypeList from "./components/HaplotypeList";
-import GeneTable from "./components/GeneTable";
+import GeneTable from "./components/GeneTable/GeneTable";
 import GeneSelector from "./components/GeneSelector";
 import HaplotypeNetwork from "./components/HaplotypeNetwork";
 import HaplotypeReducer from "./components/HaplotypeReducer";
 import './HaplotypeNetworkApp.css';
 
 const generateColors = (num) =>
-  Array.from({ length: num }, (_, i) => `hsl(${(i * 137) % 360}, 70%, 50%)`);
+  Array.from({ length: num }, (_, i) => `hsl(${(i * 137) % 360}, 100%, 50%)`);
 
 const HaplotypeNetworkApp = ({
   initialFileContent = "",
@@ -23,6 +23,7 @@ const HaplotypeNetworkApp = ({
   // State
   // =======================
   const [activeSection, setActiveSection] = useState("taiwanMap");
+  const [isLocationMapVisible, setIsLocationMapVisible] = useState(true);
   const [genes, setGenes] = useState([]);
   const [geneColors, setGeneColors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,11 +32,11 @@ const HaplotypeNetworkApp = ({
   const [cityUpdateFlags, setCityUpdateFlags] = useState({});
   const [cityGeneData, setCityGeneData] = useState({});
   const [totalCityGeneData, setTotalCityGeneData] = useState({});
-  const [viewMode, setViewMode] = useState("count");
+  const [viewMode, setViewMode] = useState("total");
   const [hapColors, setHapColors] = useState({});
   const [hapHeaders, setHapHeaders] = useState([]);   // ✅ 新增
   const [hapPage, setHapPage] = useState(1);          // ✅ 新增
-  const hapsPerPage = 10;                             // ✅ 固定每頁數
+  const hapsPerPage = 15;                             // ✅ 固定每頁數
 
   // ✅ 提升到父層
   const [selectedGenes, setSelectedGenes] = useState([]);
@@ -48,16 +49,12 @@ const HaplotypeNetworkApp = ({
     latRange: [21.5, 25.5],
   });
 
+
   // =======================
   // Refs & Constants
   // =======================
   const workerRef = useRef(null);
   const genesPerPage = 10;
-  const totalPages = Math.ceil(genes.length / genesPerPage);
-  const paginatedGenes = genes.slice(
-    (currentPage - 1) * genesPerPage,
-    currentPage * genesPerPage
-  );
 
   // =======================
   // Functions
@@ -175,21 +172,26 @@ const HaplotypeNetworkApp = ({
   <div className="app-container">
     {/* ====== 上方區域：Section 切換按鈕 ====== */}
     <div className="button-group">
-      <button onClick={() => setActiveSection("taiwanMap")}>
-        All Sequences
-      </button>
-      <button onClick={() => setActiveSection("geneComponents")}>
-        Sequences Components
-      </button>
-      <button onClick={() => setActiveSection("haplotypeNetwork")}>
-        Haplotype Network
-      </button>
+      <button onClick={() => { setActiveSection("locationMap"); setIsLocationMapVisible(true); }}>
+          Location Map
+        </button>
+        <button onClick={() => setActiveSection("haplotypeNetwork")}>
+          Haplotype Network
+        </button>
     </div>
+
+    {/* ====== Location Map 區域的兩個切換按鈕 ====== */}
+     {(activeSection === "locationMap" || activeSection === "taiwanMap" || activeSection === "geneComponents") && (
+        <div className="location-map-buttons">
+          <button onClick={() => setActiveSection("taiwanMap")}>All Sequences</button>
+          <button onClick={() => setActiveSection("geneComponents")}>Sequences Components</button>
+        </div>
+      )}
+    
 
     {/* ====== 區塊 1：Taiwan Map 區 ====== */}
     {activeSection === "taiwanMap" && (
       <div className="section flex-container">
-
         {/* --- 左邊：台灣地圖 --- */}
         <div className="map-box">
           <TaiwanMapComponent
@@ -206,94 +208,39 @@ const HaplotypeNetworkApp = ({
           />
         </div>
 
-        {/* --- 右邊：HaplotypeList 與 GeneTable --- */}
-        <div className="tables-row">
-
-          {/* --- HaplotypeList 區 --- */}
-          <div className="haplotype-section">
-            <HaplotypeList
-              viewMode={viewMode}
-              paginatedGenes={paginatedGenes}
-              geneColors={geneColors}
-              hapHeaders={hapHeaders}
-              hapColors={hapColors}
-              hapPage={hapPage}
-              hapsPerPage={hapsPerPage}
-            />
-
-            {/* 分頁控制 (僅在非 total 模式顯示) */}
-            {viewMode !== "total" && (
-              <div className="pagination">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <span>{currentPage} / {totalPages}</span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* --- GeneTable 區 --- */}
-          <div className="gene-section">
-            <GeneTable
-              fileName={initialFileName}
-              eDnaSampleContent={eDnaSampleContent}
-              eDnaTagsContent={eDnaTagsContent}
-              csvContent={csvContent}
-              csvFileName={csvFileName}
-              genes={genes}
-              currentPage={currentPage}
-              itemsPerPage={genesPerPage}
-              setCurrentPage={setCurrentPage}
-              updateMapData={updateMapData}
-              geneColors={viewMode === "total" ? hapColors : geneColors}
-              setCityGeneData={setCityGeneData}
-              setTotalCityGeneData={setTotalCityGeneData}
-              onViewModeChange={setViewMode}
-              onHapColorsChange={setHapColors}
-              onEditGeneCount={handleEditGeneCount}
-              onEditGeneCountBulk={handleEditGeneCountBulk}
-              selectedGenes={selectedGenes}
-              onSelectedGenesChange={setSelectedGenes}
-              selectedLocations={cityVisibility}
-              onSelectedLocationsChange={setCityVisibility}
-              imgW={mapSettings.imgW}
-              imgH={mapSettings.imgH}
-              lonRange={mapSettings.lonRange}
-              latRange={mapSettings.latRange}
-              onHapHeadersChange={setHapHeaders}
-              hapPage={hapPage}
-              onHapPageChange={setHapPage}
-              hapsPerPage={hapsPerPage}
-            />
-
-            {/* 分頁控制 (僅在非 total 模式顯示) */}
-            {viewMode !== "total" && (
-              <div className="pagination">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <span>{currentPage} / {totalPages}</span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
+        {/* --- 右邊：GeneTable 區 --- */}
+        <div className="gene-section">
+          <GeneTable
+            fileName={initialFileName}
+            eDnaSampleContent={eDnaSampleContent}
+            eDnaTagsContent={eDnaTagsContent}
+            csvContent={csvContent}
+            csvFileName={csvFileName}
+            genes={genes}
+            currentPage={currentPage}
+            itemsPerPage={genesPerPage}
+            setCurrentPage={setCurrentPage}
+            updateMapData={updateMapData}
+            geneColors={viewMode === "total" ? hapColors : geneColors}
+            setCityGeneData={setCityGeneData}
+            setTotalCityGeneData={setTotalCityGeneData}
+            onViewModeChange={setViewMode}
+            onHapColorsChange={setHapColors}
+            onEditGeneCount={handleEditGeneCount}
+            onEditGeneCountBulk={handleEditGeneCountBulk}
+            selectedGenes={selectedGenes}
+            onSelectedGenesChange={setSelectedGenes}
+            selectedLocations={cityVisibility}
+            onSelectedLocationsChange={setCityVisibility}
+            imgW={mapSettings.imgW}
+            imgH={mapSettings.imgH}
+            lonRange={mapSettings.lonRange}
+            latRange={mapSettings.latRange}
+            onHapHeadersChange={setHapHeaders}
+            hapPage={hapPage}
+            onHapPageChange={setHapPage}
+            hapsPerPage={hapsPerPage}
+          />
         </div>
       </div>
     )}
@@ -302,7 +249,6 @@ const HaplotypeNetworkApp = ({
     {activeSection === "geneComponents" && (
       <div className="section flex-container">
         <div className="tables-row">
-
           {/* --- 左邊：Filtered Taiwan Map --- */}
           <div className="map-box">
             <FilteredTaiwanMapComponent
@@ -364,6 +310,7 @@ const HaplotypeNetworkApp = ({
               hapsPerPage={hapsPerPage}
             />
           </div>
+
         </div>
       </div>
     )}
@@ -371,8 +318,8 @@ const HaplotypeNetworkApp = ({
     {/* ====== 區塊 3：Haplotype Network 區 ====== */}
     {activeSection === "haplotypeNetwork" && (
       <div className="section">
-        <HaplotypeNetwork />
         <HaplotypeReducer />
+        <HaplotypeNetwork />
 
         {/* --- 隱藏用 GeneTable (僅執行資料處理，不顯示 UI) --- */}
         <div style={{ display: "none" }}>
@@ -407,11 +354,12 @@ const HaplotypeNetworkApp = ({
             onHapPageChange={setHapPage}
             hapsPerPage={hapsPerPage}
           />
-        </div>
+          </div>
       </div>
     )}
   </div>
 );
+
 
 
 };

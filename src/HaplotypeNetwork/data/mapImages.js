@@ -18,7 +18,7 @@ export const mapImages = [
   },
   {
     id: "japan",
-    name: "Japan-map",
+    name: "Japan-Map",
     src: TW2,
     defaultLonRange: [122.56, 153.59],
     defaultLatRange: [20.25, 45.31],
@@ -29,7 +29,7 @@ export const mapImages = [
   },
   {
     id: "world",
-    name: "World-map",
+    name: "World-Map",
     src: TW3,
     defaultLonRange: [180, 180],
     defaultLatRange: [90, 90],

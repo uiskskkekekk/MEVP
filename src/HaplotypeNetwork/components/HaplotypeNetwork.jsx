@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import "../components/AppStyles.css";
 
-const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
+const HaplotypeNetwork = ({ width = 800, height = 800 }) => {
   const svgRef = useRef();
   const [data, setData] = useState(null);
   const [cityColors, setCityColors] = useState({});
@@ -76,21 +76,18 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
           .forceLink(data.edges)
           .id((d) => d.id)
           .distance((d) => {
-            if (d.source.groupId === d.target.groupId)
-              return 25 * scaleFactor;
-            const dist = d.distance;
-            if (dist <= 0) return 50 * scaleFactor;
-            if (dist <= 1) return 100 * scaleFactor;
-            if (dist <= 2) return 150 * scaleFactor;
-            if (dist <= 3) return 200 * scaleFactor;
-            return 400 * scaleFactor;
+            if (d.source.groupId === d.target.groupId) return 25 * scaleFactor;
+
+              let value = 50 + d.distance * 50;
+              if (value > 400) value = 400;
+              return value * scaleFactor;
           })
       )
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force(
         "collide",
-        d3.forceCollide().radius((d) => r(d.count) + 20 * scaleFactor)
+        d3.forceCollide().radius((d) => r(d.count) + 2 * scaleFactor)
       );
 
     // 繪製邊線與距離文字
@@ -99,7 +96,7 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
       .selectAll("line")
       .data(data.edges)
       .join("line")
-      .attr("stroke", (d) => d.color || "#bbb")
+      .attr("stroke", (d) => d.color || "#030303ff")
       .attr("stroke-width", 1.5)
       .attr("stroke-dasharray", (d) =>
         d.style === "dotted" ? "2,2" : null
@@ -148,7 +145,7 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
       const radius = r(d.count);
       const entries = d.cities ? Object.entries(d.cities) : [];
 
-      const borderWidth = d.isRepresentative ? 4 : 1.5;
+      const borderWidth = d.isRepresentative ? 1 : 1;
 
       if (!entries.length) {
         group
@@ -170,8 +167,9 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
           "fill",
           (arcData) => cityColorMap[arcData.data[0]] || "#999"
         )
-        .attr("stroke", "#000")
+        .attr("stroke", "#0a0a0aff")
         .attr("stroke-width", borderWidth);
+        
     });
 
     // tooltip 與 label
@@ -194,7 +192,7 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
       .attr("fill", "#fff")
       .attr("stroke", "#000")
       .attr("stroke-width", 0.5)
-      .attr("font-size", 10);
+      .attr("font-size", 12);
 
     // tick 更新圖形位置
     sim.on("tick", () => {
@@ -229,27 +227,7 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
           <p style={{ color: "red" }}>Unable to load data</p>
         )}
 
-        {/* 節點大小與距離縮放控制按鈕 */}
-        <div style={{ margin: "10px 0" }}>
-          <button
-            className="button"
-            style={{
-              backgroundColor: "#1976d2",
-              color: "#fff",
-              marginRight: 10,
-            }}
-            onClick={() => handleResize("in")}
-          >
-            🔍 zoom in
-          </button>
-          <button
-            className="button"
-            style={{ backgroundColor: "#424242", color: "#fff" }}
-            onClick={() => handleResize("out")}
-          >
-            🔎 zoom out
-          </button>
-        </div>
+        
 
         <div style={{ marginBottom: 10 }}>
           <button
@@ -272,10 +250,29 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
                   ? "#007bff"
                   : "#ccc",
               color: "#fff",
+              marginRight: 10,
             }}
             onClick={() => setApiPath("SimplifiedHaplotypeNetwork")}
           >
             reduce
+          </button>
+          <button
+            className="button"
+            style={{
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              marginRight: 10,
+            }}
+            onClick={() => handleResize("in")}
+          >
+            🔍 zoom in
+          </button>
+          <button
+            className="button"
+            style={{ backgroundColor: "#424242", color: "#fff" }}
+            onClick={() => handleResize("out")}
+          >
+            🔎 zoom out
           </button>
         </div>
 
@@ -297,45 +294,52 @@ const HaplotypeNetwork = ({ width = 1500, height = 1500 }) => {
       {Object.keys(cityColors).length > 0 && (
         <div
           style={{
-            padding: 100,
+            padding: 50,
             border: "1px solid #ccc",
             borderRadius: 80,
             backgroundColor: "#fff",
             boxShadow: "0 2px 60px rgba(0,0,0,0.1)",
             height: "fit-content",
-             marginTop: "150px"
+             marginTop: "100px"
           }}
-        >
-          <h3 style={{ marginTop: 10 }}>location</h3>
-          <ul
-            style={{
-              listStyle: "none",
-              paddingLeft: 0,
-              margin:0,
-            }}
           >
-            {Object.entries(cityColors).map(([city, color]) => (
-              <li
-                key={city}
-                style={{
-                  marginBottom: 6,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <div
+            <h3 style={{ marginTop: 10 }}>location</h3>
+            <div
+              style={{
+                maxHeight: "600px", // 设置最大高度
+                overflowY: "auto", // 使其可以滚动
+              }}
+            >
+            <ul
+              style={{
+                listStyle: "none",
+                paddingLeft: 0,
+                margin:0,
+              }}
+            >
+              {Object.entries(cityColors).map(([city, color]) => (
+                <li
+                  key={city}
                   style={{
-                    width: 50,
-                    height: 50,
-                    backgroundColor: color,
-                    marginRight: 8,
-                    border: "1px solid #000",
+                    marginBottom: 6,
+                    display: "flex",
+                    alignItems: "center",
                   }}
-                />
-                {city}
-              </li>
-            ))}
-          </ul>
+                >
+                  <div
+                    style={{
+                      width: 50,
+                      height: 50,
+                      backgroundColor: color,
+                      marginRight: 8,
+                      border: "1px solid #000",
+                    }}
+                  />
+                  {city}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>

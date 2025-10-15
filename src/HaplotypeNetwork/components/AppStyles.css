@@ -74,6 +74,13 @@
   z-index: 0; /* 確保背景在其他元素之下 */
 }
 
+/* PieChart 圓餅圖容器 */
+.city-pie-chart {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 
 
 
@@ -90,13 +97,6 @@
   color: rgb(250, 46, 5);
   user-select: none;
   
-}
-
-/* PieChart 圓餅圖容器 */
-.city-pie-chart {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
 }
 
 
