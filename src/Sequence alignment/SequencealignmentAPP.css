@@ -160,10 +160,10 @@
 }
 
 /* 顏色標記 */
-.bg-a { background-color: lightgreen; }
+.bg-a { background-color: lightpink; }
 .bg-t { background-color: lightblue; }
-.bg-c { background-color: lightpink; }
-.bg-g { background-color: rgb(246, 2, 226); color: white; }
+.bg-c { background-color: mediumpurple; }
+.bg-g { background-color: lemonchiffon; }
 .bg-large { background-color: lightgray; }
 .bg-other { background-color: rgb(0, 0, 0); }
 

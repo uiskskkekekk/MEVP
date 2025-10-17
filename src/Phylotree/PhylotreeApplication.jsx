@@ -190,7 +190,7 @@ class PhylotreeApplication extends Component {
       const result = MoveToRootUtils.moveToRoot(treeInstance, newick, nodeId);
       
       if (result.success) {
-        console.log("✅ 移動操作成功");
+        console.log("移動操作成功");
         console.log("要移動的子樹 Newick:", result.subtreeNewick);
         console.log("移除子樹後的 Newick:", result.modifiedNewick);
         console.log("最終的 Newick:", result.newNewick);
